@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HoneyBadger - Context-aware PII detection for .NET</title>
+  <title>TasmanianDevil - Context-aware PII detection for .NET</title>
   <meta name="description" content="Offline, context-aware PII detection and de-identification for .NET. Validated recognizers, reversible encryption, structured JSON/CSV redaction, and optional multilingual ONNX NER. Architecture inspired by Microsoft Presidio.">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -12,13 +12,13 @@
 <!-- ── Navigation ──────────────────────────────────── -->
 <nav>
   <div class="nav-inner">
-    <a href="/" class="logo">HoneyBadger</a>
+    <a href="/" class="logo">TasmanianDevil</a>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
       <li><a href="#coverage">Coverage</a></li>
       <li><a href="#operators">Operators</a></li>
       <li><a href="#ner">NER</a></li>
-      <li><a href="https://github.com/filipw/honeybadger">GitHub</a></li>
+      <li><a href="https://github.com/filipw/tasmaniandevil">GitHub</a></li>
     </ul>
   </div>
 </nav>
@@ -32,13 +32,13 @@
   </p>
   <div class="cta-row">
     <a href="#quickstart" class="btn btn-primary">Get Started</a>
-    <a href="https://github.com/filipw/honeybadger" class="btn btn-secondary">View on GitHub</a>
+    <a href="https://github.com/filipw/tasmaniandevil" class="btn btn-secondary">View on GitHub</a>
   </div>
 </section>
 
 <!-- ── Install ────────────────────────────────────── -->
 <div class="install-strip">
-  <code>dotnet add package HoneyBadger</code>
+  <code>dotnet add package TasmanianDevil</code>
 </div>
 
 <!-- ── Quick start ────────────────────────────────── -->
@@ -53,7 +53,7 @@
   <div class="tier-stack">
     <div>
       <p class="code-label">1. The facade - one call to de-identify</p>
-<pre><code>using HoneyBadger;
+<pre><code>using TasmanianDevil;
 
 var engine = new PiiEngine();
 var result = engine.Deidentify("Email jane@contoso.com or call +1 425 555 0100.");
@@ -63,7 +63,7 @@ Console.WriteLine(result.AnonymizedText);
     </div>
     <div>
       <p class="code-label">2. Per-entity operators + opt-in country pack</p>
-<pre><code>using HoneyBadger;
+<pre><code>using TasmanianDevil;
 
 var options = new PiiOptions
 {
@@ -96,7 +96,7 @@ var restored = engine.Reidentify(deid, decrypt);
 <!-- ── Why ────────────────────────────────────────── -->
 <section class="alt" id="features">
   <div class="section-inner">
-    <p class="section-label">Why HoneyBadger</p>
+    <p class="section-label">Why TasmanianDevil</p>
     <h2 class="section-title">Validated, not just regex.</h2>
     <p class="section-subtitle">
       Architecture inspired by
@@ -128,7 +128,7 @@ var restored = engine.Reidentify(deid, decrypt);
       </div>
       <div class="feature-card">
         <h3>Offline core, optional ML reach</h3>
-        <p>The whole engine runs with zero models. When you want more, <code>HoneyBadger.Onnx</code> plugs a real multilingual span-NER model into the <em>same</em> pipeline - the hard part, shipped.</p>
+        <p>The whole engine runs with zero models. When you want more, <code>TasmanianDevil.Onnx</code> plugs a real multilingual span-NER model into the <em>same</em> pipeline - the hard part, shipped.</p>
       </div>
     </div>
   </div>
@@ -194,8 +194,8 @@ var restored = engine.Reidentify(deid, decrypt);
       Per-entity or via a <code>DEFAULT</code> fallback. Compose the analyzer and anonymizer directly,
       or drive everything through the <code>PiiEngine</code> facade.
     </p>
-<pre><code>using HoneyBadger.Analyzer;
-using HoneyBadger.Anonymizer;
+<pre><code>using TasmanianDevil.Analyzer;
+using TasmanianDevil.Anonymizer;
 
 var analyzer   = new AnalyzerEngine(PiiRecognizers.CreateDefaultRegistry("en"));
 var anonymizer = new AnonymizerEngine();
@@ -216,12 +216,12 @@ engine.AnonymizeBatch(keyedRecords);               // aligned results per key</c
   <p class="section-label">Optional ONNX NER</p>
   <h2 class="section-title">The span entities regex can't reach.</h2>
   <p class="section-subtitle">
-    <code>HoneyBadger.Onnx</code> adds <strong>PERSON / LOCATION / ORGANIZATION / DATE_TIME</strong> detection
+    <code>TasmanianDevil.Onnx</code> adds <strong>PERSON / LOCATION / ORGANIZATION / DATE_TIME</strong> detection
     via a zero-shot, multilingual GLiNER model - run through <a href="https://github.com/filipw/kyoto">Kyoto</a>.
     It registers as an ordinary recognizer, so its spans flow through the same overlap resolution and
     anonymization as the regex/checksum entities.
   </p>
-<pre><code>using HoneyBadger.Onnx;
+<pre><code>using TasmanianDevil.Onnx;
 
 // the ONNX export is published on Hugging Face (filip-w/gliner-multi-pii-onnx)
 var ner = new GlinerNerRecognizer(new GlinerNerOptions
@@ -235,12 +235,12 @@ registry.AddRecognizer(ner);   // PERSON/LOCATION/... now join the same analyzer
 <!-- ── Footer ─────────────────────────────────────── -->
 <footer>
   <p>
-    HoneyBadger is open source under the <a href="https://github.com/filipw/honeybadger/blob/main/LICENSE">MIT License</a>.
+    TasmanianDevil is open source under the <a href="https://github.com/filipw/tasmaniandevil/blob/main/LICENSE">MIT License</a>.
     Architecture inspired by <a href="https://github.com/microsoft/presidio">Microsoft Presidio</a> (MIT);
     phone parsing by <a href="https://github.com/twcclegg/libphonenumber-csharp">libphonenumber-csharp</a> (Apache 2.0).
     The optional NER model is <a href="https://huggingface.co/urchade/gliner_multi_pii-v1">GLiNER</a> (Apache 2.0) via
     <a href="https://github.com/filipw/kyoto">Kyoto</a>.
-    HoneyBadger is the PII engine behind <a href="https://github.com/filipw/AgentGuard">AgentGuard</a>'s <code>AgentGuard.Pii</code>.
+    TasmanianDevil is the PII engine behind <a href="https://github.com/filipw/AgentGuard">AgentGuard</a>'s <code>AgentGuard.Pii</code>.
   </p>
 </footer>
 

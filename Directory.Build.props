@@ -11,11 +11,11 @@
 
   <PropertyGroup>
     <Authors>Filip W</Authors>
-    <Product>HoneyBadger</Product>
+    <Product>TasmanianDevil</Product>
     <Copyright>Copyright (c) 2026 Filip W</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/filipw/honeybadger</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/filipw/honeybadger</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/filipw/tasmaniandevil</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/filipw/tasmaniandevil</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>pii;redaction;anonymization;privacy;gdpr;ner;dotnet</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>

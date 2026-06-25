@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TasmanianDevil/TasmanianDevil.csproj" />
+    <Project Path="src/TasmanianDevil.Onnx/TasmanianDevil.Onnx.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/PiiShowcase/PiiShowcase.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TasmanianDevil.Tests/TasmanianDevil.Tests.csproj" />
+    <Project Path="tests/TasmanianDevil.Onnx.Tests/TasmanianDevil.Onnx.Tests.csproj" />
+  </Folder>
+</Solution>

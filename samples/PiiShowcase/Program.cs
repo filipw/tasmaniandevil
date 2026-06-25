@@ -1,4 +1,4 @@
-// HoneyBadger - PII engine showcase (console)
+// TasmanianDevil - PII engine showcase (console)
 // A narrated, end-to-end tour of the offline PII detection + de-identification engine:
 //   1. detection breadth (generic + always-on US + opt-in country pack), scores, context boosting
 //   2. anonymization operators (replace/redact/mask/hash/encrypt<->deanonymize/keep/custom)
@@ -7,19 +7,19 @@
 //   5. allow-list + per-entity operator config
 //   6. multilingual ONNX NER (PERSON/LOCATION/ORGANIZATION/DATE_TIME), gated on KYOTO_GLINER_*
 //
-// Sections 1-5 run on regex + checksums alone. Section 6 adds the optional HoneyBadger.Onnx
+// Sections 1-5 run on regex + checksums alone. Section 6 adds the optional TasmanianDevil.Onnx
 // recognizer: a real multilingual span NER model, merged into the very same analyzer/anonymizer
 // pipeline as the regex entities - the span coverage regex simply cannot reach.
 
 using System.Text;
-using HoneyBadger;
-using HoneyBadger.Analyzer;
-using HoneyBadger.Analyzer.Context;
-using HoneyBadger.Anonymizer;
-using HoneyBadger.Anonymizer.Operators;
-using HoneyBadger.Batch;
-using HoneyBadger.Onnx;
-using HoneyBadger.Structured;
+using TasmanianDevil;
+using TasmanianDevil.Analyzer;
+using TasmanianDevil.Analyzer.Context;
+using TasmanianDevil.Anonymizer;
+using TasmanianDevil.Anonymizer.Operators;
+using TasmanianDevil.Batch;
+using TasmanianDevil.Onnx;
+using TasmanianDevil.Structured;
 
 Console.OutputEncoding = Encoding.UTF8;
 
@@ -37,7 +37,7 @@ void BeforeAfter(string before, string after)
     Console.WriteLine($"  after  : {after}");
 }
 
-Console.WriteLine("HoneyBadger - PII engine showcase");
+Console.WriteLine("TasmanianDevil - PII engine showcase");
 Console.WriteLine("Offline PII detection + de-identification, architecture inspired by Microsoft Presidio (MIT).");
 
 // shared engines. enabling the German country pack alongside the always-on generic + US recognizers.
@@ -201,7 +201,7 @@ BeforeAfter(allowText, allowAnon.Text);
 // ---------------------------------------------------------------------------
 // 6. multilingual ONNX NER (gated on KYOTO_GLINER_* env vars)
 // ---------------------------------------------------------------------------
-Header("6. Multilingual ONNX NER (HoneyBadger.Onnx + Kyoto)");
+Header("6. Multilingual ONNX NER (TasmanianDevil.Onnx + Kyoto)");
 
 var nerModel = Environment.GetEnvironmentVariable("KYOTO_GLINER_ONNX_MODEL_PATH");
 var nerTokenizer = Environment.GetEnvironmentVariable("KYOTO_GLINER_TOKENIZER_PATH");
@@ -209,7 +209,7 @@ var nerConfig = Environment.GetEnvironmentVariable("KYOTO_GLINER_CONFIG_PATH");
 
 if (string.IsNullOrEmpty(nerModel) || string.IsNullOrEmpty(nerTokenizer) || string.IsNullOrEmpty(nerConfig))
 {
-    Console.WriteLine("  skipped - NER model not configured. The HoneyBadger.Onnx add-on detects span");
+    Console.WriteLine("  skipped - NER model not configured. The TasmanianDevil.Onnx add-on detects span");
     Console.WriteLine("  entities (PERSON/LOCATION/ORGANIZATION/DATE_TIME) regex cannot, in many languages.");
     Console.WriteLine("  To enable it, fetch the GLiNER export (published on Hugging Face) via the Kyoto repo:");
     Console.WriteLine("    ../kyoto/bootstrap-models.sh gliner   # from https://huggingface.co/filip-w/gliner-multi-pii-onnx");

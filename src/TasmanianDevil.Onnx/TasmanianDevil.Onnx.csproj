@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Optional ONNX named-entity recognition for TasmanianDevil. Adds offline, multilingual PERSON / LOCATION / ORGANIZATION / DATE_TIME span detection (GLiNER, via Kyoto) into the TasmanianDevil analyzer/anonymizer pipeline as an ordinary recognizer. Bring-your-own ONNX model.</Description>
+    <PackageId>TasmanianDevil.Onnx</PackageId>
+    <RootNamespace>TasmanianDevil.Onnx</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TasmanianDevil.Onnx.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TasmanianDevil/TasmanianDevil.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Kyoto" />
+  </ItemGroup>
+</Project>

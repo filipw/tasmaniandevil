@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Context-aware PII detection and de-identification for .NET. Provides validated regex/checksum recognizers (credit card, IBAN, crypto, email, IP, URL, MAC, phone, plus US and opt-in country packs) with confidence scoring, lemma-aware context boosting, overlap resolution, and anonymization operators (replace, redact, mask, hash, encrypt/decrypt, keep, custom) with reversible de-identification, structured (JSON/CSV) and batch APIs. Inspired by the architecture of Microsoft Presidio (MIT). Framework-agnostic, fully offline.</Description>
+    <PackageId>TasmanianDevil</PackageId>
+    <RootNamespace>TasmanianDevil</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TasmanianDevil.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="libphonenumber-csharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="THIRD_PARTY_NOTICES.txt"
+          Pack="true"
+          PackagePath="/" />
+  </ItemGroup>
+</Project>

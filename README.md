@@ -1,14 +1,14 @@
-# HoneyBadger
+# TasmanianDevil
 
 **Context-aware PII detection and de-identification for .NET.** A from-scratch engine whose
 architecture is inspired by [Microsoft Presidio](https://github.com/microsoft/presidio) (MIT),
 rebuilt as idiomatic, dependency-light C#. Framework-agnostic and fast.
 
 ```
-dotnet add package HoneyBadger
+dotnet add package TasmanianDevil
 ```
 
-## Why HoneyBadger
+## Why TasmanianDevil
 
 - **Validated, not just regex.** Recognizers carry real checksum validation (Luhn, IBAN mod-97,
   Verhoeff, ISO-7064, ICAO, bech32), so a 16-digit number is only a credit card if it actually checks out.
@@ -19,8 +19,8 @@ dotnet add package HoneyBadger
 - **Beyond plain text.** Structured JSON (by dotted path) and CSV (by inferred column) redaction, plus
   batch APIs over keyed records - all preserving shape and non-string values.
 - **Offline core + an optional ML reach.** The whole engine runs with zero models. When you *want*
-  more, the `HoneyBadger.Onnx` add-on plugs a real multilingual span-NER model into the **same**
-  pipeline (see below) - getting that working is the hard part, and HoneyBadger ships it.
+  more, the `TasmanianDevil.Onnx` add-on plugs a real multilingual span-NER model into the **same**
+  pipeline (see below) - getting that working is the hard part, and TasmanianDevil ships it.
 
 ## Detection coverage
 
@@ -37,7 +37,7 @@ registrations, etc.
 ## Quick start
 
 ```csharp
-using HoneyBadger;
+using TasmanianDevil;
 
 var engine = new PiiEngine();
 var result = engine.Deidentify("Email jane@contoso.com or call +1 425 555 0100.");
@@ -85,13 +85,13 @@ narrated end-to-end tour.
 
 ## Optional multilingual ONNX NER
 
-`HoneyBadger.Onnx` adds **PERSON / LOCATION / ORGANIZATION / DATE_TIME** span detection - the entity
+`TasmanianDevil.Onnx` adds **PERSON / LOCATION / ORGANIZATION / DATE_TIME** span detection - the entity
 classes regex fundamentally cannot reach - via a zero-shot GLiNER model (mDeBERTa-v3 backbone),
 multilingual out of the box. It registers as an ordinary recognizer, so its spans flow through the
 exact same overlap-resolution and anonymization as the regex/checksum entities.
 
 ```
-dotnet add package HoneyBadger.Onnx
+dotnet add package TasmanianDevil.Onnx
 ```
 
 It runs the model through [Kyoto](https://github.com/filipw/kyoto). The ONNX export is published at
@@ -99,7 +99,7 @@ It runs the model through [Kyoto](https://github.com/filipw/kyoto). The ONNX exp
 ~580 MB):
 
 ```csharp
-using HoneyBadger.Onnx;
+using TasmanianDevil.Onnx;
 
 var ner = new GlinerNerRecognizer(new GlinerNerOptions
 {

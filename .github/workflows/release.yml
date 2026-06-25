@@ -1,8 +1,8 @@
 name: Release
 
-# Publishes HoneyBadger + HoneyBadger.Onnx to NuGet on a version tag, e.g.
+# Publishes TasmanianDevil + TasmanianDevil.Onnx to NuGet on a version tag, e.g.
 # `git tag v0.1.0 && git push origin v0.1.0`.
-# Note: HoneyBadger.Onnx depends on Kyoto, so publish the Kyoto package first.
+# Note: TasmanianDevil.Onnx depends on Kyoto, so publish the Kyoto package first.
 on:
   push:
     tags: ['v*']
@@ -30,12 +30,12 @@ jobs:
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Test
-        run: dotnet test HoneyBadger.slnx -c Release
+        run: dotnet test TasmanianDevil.slnx -c Release
 
       - name: Pack
         run: |
-          dotnet pack src/HoneyBadger/HoneyBadger.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
-          dotnet pack src/HoneyBadger.Onnx/HoneyBadger.Onnx.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
+          dotnet pack src/TasmanianDevil/TasmanianDevil.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
+          dotnet pack src/TasmanianDevil.Onnx/TasmanianDevil.Onnx.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
 
       - name: NuGet trusted publishing login
         uses: NuGet/login@v1

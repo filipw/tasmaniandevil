@@ -18,15 +18,15 @@ jobs:
           dotnet-version: '10.0.x'
 
       # nuget.config references a sibling local feed for cross-repo dev; create it empty in CI
-      # so restore is happy. The Kyoto dependency (for HoneyBadger.Onnx) resolves from nuget.org.
+      # so restore is happy. The Kyoto dependency (for TasmanianDevil.Onnx) resolves from nuget.org.
       - name: Provision empty local feed
         run: mkdir -p ../.local-nuget
 
       - name: Restore
-        run: dotnet restore HoneyBadger.slnx
+        run: dotnet restore TasmanianDevil.slnx
 
       - name: Build
-        run: dotnet build HoneyBadger.slnx -c Release --no-restore
+        run: dotnet build TasmanianDevil.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test HoneyBadger.slnx -c Release --no-build --verbosity normal
+        run: dotnet test TasmanianDevil.slnx -c Release --no-build --verbosity normal
