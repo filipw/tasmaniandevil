@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HoneyBadger - Context-aware PII detection for .NET</title>
+  <meta name="description" content="Offline, context-aware PII detection and de-identification for .NET. Validated recognizers, reversible encryption, structured JSON/CSV redaction, and optional multilingual ONNX NER. Architecture inspired by Microsoft Presidio.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="logo">HoneyBadger</a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#coverage">Coverage</a></li>
+      <li><a href="#operators">Operators</a></li>
+      <li><a href="#ner">NER</a></li>
+      <li><a href="https://github.com/filipw/honeybadger">GitHub</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────── -->
+<section class="hero">
+  <h1>Context-aware PII<br>detection for .NET.</h1>
+  <p class="subtitle">
+    Detect and de-identify personal data offline - validated recognizers, reversible encryption,
+    structured JSON/CSV redaction, and optional multilingual NER. PII never leaves your process.
+  </p>
+  <div class="cta-row">
+    <a href="#quickstart" class="btn btn-primary">Get Started</a>
+    <a href="https://github.com/filipw/honeybadger" class="btn btn-secondary">View on GitHub</a>
+  </div>
+</section>
+
+<!-- ── Install ────────────────────────────────────── -->
+<div class="install-strip">
+  <code>dotnet add package HoneyBadger</code>
+</div>
+
+<!-- ── Quick start ────────────────────────────────── -->
+<section id="quickstart">
+  <p class="section-label">Quick Start</p>
+  <h2 class="section-title">Detect, de-identify, restore.</h2>
+  <p class="section-subtitle">
+    One facade wires the analyzer, anonymizer, and deanonymizer from a single options object - or
+    compose the engines directly for full control.
+  </p>
+
+  <div class="tier-stack">
+    <div>
+      <p class="code-label">1. The facade - one call to de-identify</p>
+<pre><code>using HoneyBadger;
+
+var engine = new PiiEngine();
+var result = engine.Deidentify("Email jane@contoso.com or call +1 425 555 0100.");
+
+Console.WriteLine(result.AnonymizedText);
+// Email &lt;EMAIL_ADDRESS&gt; or call &lt;PHONE_NUMBER&gt;.</code></pre>
+    </div>
+    <div>
+      <p class="code-label">2. Per-entity operators + opt-in country pack</p>
+<pre><code>using HoneyBadger;
+
+var options = new PiiOptions
+{
+    Countries = [PiiCountries.De],
+    Operators = new Dictionary&lt;string, OperatorConfig&gt;
+    {
+        ["EMAIL_ADDRESS"] = new("mask", new() { [OperatorParams.CharsToMask] = 6 }),
+        ["CREDIT_CARD"]   = new("redact"),
+        ["DEFAULT"]       = new("encrypt", new() { [OperatorParams.Key] = key }),
+    },
+};
+
+var engine = new PiiEngine(options);
+var deid   = engine.Deidentify(text);   // deid.IsReversible == true</code></pre>
+    </div>
+    <div>
+      <p class="code-label">3. Reversible round-trip - encrypt out, restore exactly</p>
+<pre><code>// hand the opaque text to a third party, then decrypt it back byte-for-byte
+var decrypt = new Dictionary&lt;string, OperatorConfig&gt;
+{
+    ["DEFAULT"] = new("decrypt", new() { [OperatorParams.Key] = key }),
+};
+
+var restored = engine.Reidentify(deid, decrypt);
+// restored.Text == original text</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- ── Why ────────────────────────────────────────── -->
+<section class="alt" id="features">
+  <div class="section-inner">
+    <p class="section-label">Why HoneyBadger</p>
+    <h2 class="section-title">Validated, not just regex.</h2>
+    <p class="section-subtitle">
+      Architecture inspired by
+      <a href="https://github.com/microsoft/presidio" target="_blank">Microsoft Presidio</a>
+      (<a href="https://github.com/microsoft/presidio/blob/main/LICENSE" target="_blank">MIT</a>; not affiliated or endorsed),
+      rebuilt from scratch as idiomatic, dependency-light C#.
+    </p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Checksum-validated recognizers</h3>
+        <p>A 16-digit number is only a credit card if it passes Luhn; an IBAN if it passes mod-97. Real validation (Luhn, mod-97, Verhoeff, ISO-7064, ICAO, bech32) cuts false positives that naive regex can't.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Context-aware scoring</h3>
+        <p>A bare token scores low and drops; nearby words ("card", "IBAN", "postcode") lift it over threshold via a dependency-free Porter-stemmer lemma matcher. Detection adapts to surrounding text.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Reversible de-identification</h3>
+        <p>Encrypt PII spans (AES), hand the opaque text to a third party, and decrypt the exact original back. Lossy operators (mask, hash, redact) report themselves non-reversible; a wrong key fails loudly.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Structured data</h3>
+        <p>Redact JSON by key path (allow / deny) preserving shape and non-string types, or infer PII columns in CSV/TSV and redact them consistently - reusing the same recognizers and operators.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Batch API</h3>
+        <p>Analyze and anonymize lists or keyed record dictionaries in one call, results aligned to the input. Allocation-light and safe to share across threads.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Offline core, optional ML reach</h3>
+        <p>The whole engine runs with zero models. When you want more, <code>HoneyBadger.Onnx</code> plugs a real multilingual span-NER model into the <em>same</em> pipeline - the hard part, shipped.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Coverage ───────────────────────────────────── -->
+<section id="coverage">
+  <p class="section-label">Detection Coverage</p>
+  <h2 class="section-title">~50 entity types, validated.</h2>
+  <p class="section-subtitle">
+    Generic and US recognizers are always on. Opt-in country packs add national identifiers, validated
+    with real checksums and off by default to keep false positives low.
+  </p>
+
+  <div class="pii-stats">
+    <div class="pii-stat"><span class="pii-stat-num">~50</span><span class="pii-stat-label">entity types</span></div>
+    <div class="pii-stat"><span class="pii-stat-num">6</span><span class="pii-stat-label">country packs (US always on)</span></div>
+    <div class="pii-stat"><span class="pii-stat-num">7</span><span class="pii-stat-label">anonymization operators</span></div>
+    <div class="pii-stat"><span class="pii-stat-num">0</span><span class="pii-stat-label">network calls</span></div>
+  </div>
+
+  <p class="pii-prose">
+    8 generic recognizers (email, phone via libphonenumber, credit card / Luhn, IBAN / mod-97, crypto, IP, URL, MAC) and a
+    9-entity US pack are <strong>always on</strong>. Opt-in country packs add national IDs, tax numbers, and passports for the
+    UK, Germany, India, Italy, and Spain. An optional offline ONNX add-on layers in multilingual named-entity detection
+    (<code>PERSON</code>, <code>LOCATION</code>, <code>ORGANIZATION</code>, <code>DATE_TIME</code>), all resolved in one pass.
+  </p>
+
+  <!-- pipeline diagram (static, no JS) -->
+  <div class="pii-pipeline" aria-label="PII processing pipeline">
+    <div class="pipe-stage">
+      <span class="pipe-step">1</span>
+      <strong>Recognizers</strong>
+      <span>Validated regex + checksums<br>Luhn · mod-97 · Verhoeff · ISO-7064</span>
+    </div>
+    <div class="pipe-arrow" aria-hidden="true">&rarr;</div>
+    <div class="pipe-stage">
+      <span class="pipe-step">2</span>
+      <strong>Context boosting</strong>
+      <span>Lemma-aware confidence scoring<br>offline Porter stemmer</span>
+    </div>
+    <div class="pipe-arrow" aria-hidden="true">&rarr;</div>
+    <div class="pipe-stage">
+      <span class="pipe-step">3</span>
+      <strong>Conflict resolution</strong>
+      <span>Overlap / containment merge<br>threshold + allow-list</span>
+    </div>
+    <div class="pipe-arrow" aria-hidden="true">&rarr;</div>
+    <div class="pipe-stage">
+      <span class="pipe-step">4</span>
+      <strong>Operators</strong>
+      <span>replace · redact · mask · hash<br>encrypt &harr; decrypt · keep · custom</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── Operators ──────────────────────────────────── -->
+<section id="operators" class="alt">
+  <div class="section-inner">
+    <p class="section-label">Operators</p>
+    <h2 class="section-title">Seven ways to anonymize.</h2>
+    <p class="section-subtitle">
+      Per-entity or via a <code>DEFAULT</code> fallback. Compose the analyzer and anonymizer directly,
+      or drive everything through the <code>PiiEngine</code> facade.
+    </p>
+<pre><code>using HoneyBadger.Analyzer;
+using HoneyBadger.Anonymizer;
+
+var analyzer   = new AnalyzerEngine(PiiRecognizers.CreateDefaultRegistry("en"));
+var anonymizer = new AnonymizerEngine();
+
+// replace (default) · redact · mask · hash (salted) · encrypt &harr; decrypt · keep · custom
+var results    = analyzer.Analyze(text, "en");
+var anonymized = anonymizer.Anonymize(text, results, operators);
+
+// structured + batch reuse the very same recognizers and operators
+engine.AnonymizeJson(json, new JsonRedactionScope { IncludePaths = ["user.email"] });
+engine.AnonymizeCsv(header, rows);                 // infers which columns are PII
+engine.AnonymizeBatch(keyedRecords);               // aligned results per key</code></pre>
+  </div>
+</section>
+
+<!-- ── NER ────────────────────────────────────────── -->
+<section id="ner">
+  <p class="section-label">Optional ONNX NER</p>
+  <h2 class="section-title">The span entities regex can't reach.</h2>
+  <p class="section-subtitle">
+    <code>HoneyBadger.Onnx</code> adds <strong>PERSON / LOCATION / ORGANIZATION / DATE_TIME</strong> detection
+    via a zero-shot, multilingual GLiNER model - run through <a href="https://github.com/filipw/kyoto">Kyoto</a>.
+    It registers as an ordinary recognizer, so its spans flow through the same overlap resolution and
+    anonymization as the regex/checksum entities.
+  </p>
+<pre><code>using HoneyBadger.Onnx;
+
+// the ONNX export is published on Hugging Face (filip-w/gliner-multi-pii-onnx)
+var ner = new GlinerNerRecognizer(new GlinerNerOptions
+{
+    ModelPath = modelPath, TokenizerPath = spmPath, ConfigPath = configPath,
+});
+
+registry.AddRecognizer(ner);   // PERSON/LOCATION/... now join the same analyzer pass</code></pre>
+</section>
+
+<!-- ── Footer ─────────────────────────────────────── -->
+<footer>
+  <p>
+    HoneyBadger is open source under the <a href="https://github.com/filipw/honeybadger/blob/main/LICENSE">MIT License</a>.
+    Architecture inspired by <a href="https://github.com/microsoft/presidio">Microsoft Presidio</a> (MIT);
+    phone parsing by <a href="https://github.com/twcclegg/libphonenumber-csharp">libphonenumber-csharp</a> (Apache 2.0).
+    The optional NER model is <a href="https://huggingface.co/urchade/gliner_multi_pii-v1">GLiNER</a> (Apache 2.0) via
+    <a href="https://github.com/filipw/kyoto">Kyoto</a>.
+    HoneyBadger is the PII engine behind <a href="https://github.com/filipw/AgentGuard">AgentGuard</a>'s <code>AgentGuard.Pii</code>.
+  </p>
+</footer>
+
+<!-- ── Syntax highlighting ─────────────────────────────
+     Tiny self-contained C# highlighter: no external libraries, no network, runs once on load. -->
+<script>
+(function () {
+  var KEYWORDS = new Set("using namespace var new await async foreach for while do in is as if else switch case return public private protected internal static sealed partial abstract virtual override class record struct interface enum void true false null this base throw try catch finally get set init params out ref readonly const default yield break continue lock typeof nameof when".split(" "));
+  var PRIMS = new Set("string int long double float decimal bool byte char object short uint ulong sbyte ushort void".split(" "));
+
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  function highlight(code) {
+    var out = "", i = 0, n = code.length;
+    while (i < n) {
+      var rest = code.slice(i), m;
+      if (m = /^\/\/[^\n]*/.exec(rest)) { out += '<span class="tok-com">' + esc(m[0]) + "</span>"; i += m[0].length; continue; }
+      if (m = /^[@$]*"(?:[^"\\]|\\.|"")*"/.exec(rest)) { out += '<span class="tok-str">' + esc(m[0]) + "</span>"; i += m[0].length; continue; }
+      if (m = /^\d[\d_]*(?:\.\d+)?[fFdDmMlLuU]*\b/.exec(rest)) { out += '<span class="tok-num">' + esc(m[0]) + "</span>"; i += m[0].length; continue; }
+      if (m = /^[A-Za-z_][A-Za-z0-9_]*/.exec(rest)) {
+        var w = m[0], cls = KEYWORDS.has(w) || PRIMS.has(w) ? "tok-kw" : (/^[A-Z]/.test(w) ? "tok-type" : null);
+        out += cls ? '<span class="' + cls + '">' + esc(w) + "</span>" : esc(w);
+        i += w.length; continue;
+      }
+      out += esc(code[i]); i++;
+    }
+    return out;
+  }
+
+  document.querySelectorAll("pre code").forEach(function (el) {
+    el.innerHTML = highlight(el.textContent);
+  });
+})();
+</script>
+
+</body>
+</html>
