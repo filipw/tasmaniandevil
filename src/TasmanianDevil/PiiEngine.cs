@@ -29,15 +29,19 @@ public sealed class PiiEngine
     /// <param name="options">Detection/anonymization configuration. Defaults to all entities, replace operator.</param>
     /// <param name="analyzer">Optional custom analyzer engine. Defaults to the registry built from <paramref name="options"/>.</param>
     /// <param name="anonymizer">Optional custom anonymizer engine.</param>
+    /// <param name="extraRecognizers">
+    /// Additional recognizers (e.g. an async remote detector) to add to the registry built from
+    /// <paramref name="options"/>. Ignored when <paramref name="analyzer"/> is supplied - compose them
+    /// into that analyzer's registry instead.
+    /// </param>
     public PiiEngine(
         PiiOptions? options = null,
         AnalyzerEngine? analyzer = null,
-        AnonymizerEngine? anonymizer = null)
+        AnonymizerEngine? anonymizer = null,
+        IEnumerable<EntityRecognizer>? extraRecognizers = null)
     {
         _options = options ?? new PiiOptions();
-        _analyzer = analyzer ?? new AnalyzerEngine(
-            PiiRecognizers.CreateRegistry(_options.Language, _options.Countries),
-            new LemmaContextAwareEnhancer(contextMatchingMode: _options.ContextMatchingMode));
+        _analyzer = analyzer ?? BuildDefaultAnalyzer(_options, extraRecognizers);
         _anonymizer = anonymizer ?? new AnonymizerEngine();
         _deanonymizer = new DeanonymizerEngine();
         _structured = new StructuredEngine(_analyzer, _anonymizer, _options.Language, _options.ScoreThreshold, _options.ConflictResolution);
@@ -51,11 +55,35 @@ public sealed class PiiEngine
     public static PiiEngine Create(string language = "en", params string[] countries) =>
         new(new PiiOptions { Language = language, Countries = countries is { Length: > 0 } ? countries : null });
 
+    private static AnalyzerEngine BuildDefaultAnalyzer(PiiOptions options, IEnumerable<EntityRecognizer>? extraRecognizers)
+    {
+        var registry = PiiRecognizers.CreateRegistry(options.Language, options.Countries);
+        if (extraRecognizers is not null)
+        {
+            foreach (var recognizer in extraRecognizers)
+            {
+                registry.AddRecognizer(recognizer);
+            }
+        }
+
+        return new AnalyzerEngine(registry, new LemmaContextAwareEnhancer(contextMatchingMode: options.ContextMatchingMode));
+    }
+
     /// <summary>Detects PII entities in <paramref name="text"/> without transforming it.</summary>
     public IReadOnlyList<RecognizerResult> Analyze(string text) =>
         string.IsNullOrEmpty(text)
             ? []
             : _analyzer.Analyze(text, _options.Language, _options.Entities, _options.ScoreThreshold, _options.AllowList, _options.AllowListMatch);
+
+    /// <summary>
+    /// Asynchronously detects PII entities in <paramref name="text"/> without transforming it. Awaits
+    /// any async recognizers in the registry (e.g. a remote detector); when none are present this
+    /// completes synchronously.
+    /// </summary>
+    public ValueTask<IReadOnlyList<RecognizerResult>> AnalyzeAsync(string text, CancellationToken ct = default) =>
+        string.IsNullOrEmpty(text)
+            ? new([])
+            : _analyzer.AnalyzeAsync(text, _options.Language, _options.Entities, _options.ScoreThreshold, _options.AllowList, _options.AllowListMatch, ct: ct);
 
     /// <summary>Detects and anonymizes PII in <paramref name="text"/> using the configured operators.</summary>
     public EngineResult Anonymize(string text)
@@ -67,6 +95,16 @@ public sealed class PiiEngine
         return _anonymizer.Anonymize(text, results, _options.BuildOperators(), _options.ConflictResolution);
     }
 
+    /// <summary>Asynchronously detects and anonymizes PII in <paramref name="text"/> using the configured operators.</summary>
+    public async ValueTask<EngineResult> AnonymizeAsync(string text, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(text))
+            return new EngineResult(text ?? string.Empty);
+
+        var results = await AnalyzeAsync(text, ct).ConfigureAwait(false);
+        return _anonymizer.Anonymize(text, results, _options.BuildOperators(), _options.ConflictResolution);
+    }
+
     /// <summary>
     /// Anonymizes <paramref name="text"/> and returns a <see cref="PiiDeidentificationResult"/> whose
     /// items can be persisted and later passed to <see cref="Reidentify"/> to restore the original
@@ -74,6 +112,10 @@ public sealed class PiiEngine
     /// </summary>
     public PiiDeidentificationResult Deidentify(string text) =>
         PiiDeidentificationResult.FromEngineResult(Anonymize(text));
+
+    /// <summary>Asynchronous counterpart to <see cref="Deidentify"/>.</summary>
+    public async ValueTask<PiiDeidentificationResult> DeidentifyAsync(string text, CancellationToken ct = default) =>
+        PiiDeidentificationResult.FromEngineResult(await AnonymizeAsync(text, ct).ConfigureAwait(false));
 
     /// <summary>
     /// Reverses a prior <see cref="Deidentify"/> using the supplied reverse operators (default

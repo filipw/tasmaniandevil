@@ -55,6 +55,23 @@ public abstract class EntityRecognizer
     public abstract IReadOnlyList<RecognizerResult> Analyze(string text, IReadOnlyList<string> entities);
 
     /// <summary>
+    /// When <c>true</c>, this recognizer only produces results via <see cref="AnalyzeAsync"/> (e.g. it
+    /// calls a remote service); its synchronous <see cref="Analyze"/> returns no results, so
+    /// <see cref="AnalyzerEngine.Analyze"/> silently skips it.
+    /// </summary>
+    public virtual bool RequiresAsync => false;
+
+    /// <summary>
+    /// Asynchronously analyzes <paramref name="text"/> for the requested <paramref name="entities"/>.
+    /// The default implementation wraps <see cref="Analyze"/>, so purely synchronous recognizers need
+    /// no override; recognizers that call out (e.g. a remote HTTP detector) override this instead and
+    /// set <see cref="RequiresAsync"/> to <c>true</c>.
+    /// </summary>
+    public virtual ValueTask<IReadOnlyList<RecognizerResult>> AnalyzeAsync(
+        string text, IReadOnlyList<string> entities, CancellationToken ct = default) =>
+        new(Analyze(text, entities));
+
+    /// <summary>
     /// Removes duplicate and contained results, keeping the highest-scoring non-contained spans.
     /// </summary>
     public static List<RecognizerResult> RemoveDuplicates(IEnumerable<RecognizerResult> results)

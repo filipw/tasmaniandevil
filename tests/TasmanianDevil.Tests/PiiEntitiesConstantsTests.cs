@@ -11,6 +11,10 @@ public class PiiEntitiesConstantsTests
     private static readonly string[] NerEntities =
         [PiiEntities.Person, PiiEntities.Location, PiiEntities.Organization, PiiEntities.DateTime];
 
+    // detected only by an optional remote detector (TasmanianDevil.Remote / TasmanianDevil.Azure), not by
+    // any local regex/checksum/NER recognizer
+    private static readonly string[] RemoteOnlyEntities = [PiiEntities.Address];
+
     private static List<string> AllEntityConstants() =>
         typeof(PiiEntities).GetFields(BindingFlags.Public | BindingFlags.Static)
             .Where(f => f is { IsLiteral: true } && f.FieldType == typeof(string))
@@ -25,7 +29,8 @@ public class PiiEntitiesConstantsTests
             "en", [PiiCountries.Uk, PiiCountries.De, PiiCountries.In, PiiCountries.It, PiiCountries.Es]);
         var supported = registry.GetSupportedEntities("en");
 
-        var nonNerConstants = AllEntityConstants().Where(c => !NerEntities.Contains(c));
+        var excluded = NerEntities.Concat(RemoteOnlyEntities);
+        var nonNerConstants = AllEntityConstants().Where(c => !excluded.Contains(c));
 
         // guards drift in BOTH directions: a new recognizer entity with no constant, or a constant
         // that no recognizer actually produces, fails this test.

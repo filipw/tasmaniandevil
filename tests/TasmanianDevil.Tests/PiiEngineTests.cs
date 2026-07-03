@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using TasmanianDevil;
+using TasmanianDevil.Analyzer;
 using TasmanianDevil.Anonymizer.Operators;
 using FluentAssertions;
 using Xunit;
@@ -116,5 +117,76 @@ public class PiiEngineTests
 
         engine.Anonymize("").Text.Should().Be("");
         engine.Analyze("").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ShouldReturnSameDetections_FromAnalyzeAsync_AsAnalyze()
+    {
+        var engine = new PiiEngine();
+        const string text = "email john@example.com";
+
+        var syncResults = engine.Analyze(text);
+        var asyncResults = await engine.AnalyzeAsync(text);
+
+        asyncResults.Should().BeEquivalentTo(syncResults);
+    }
+
+    [Fact]
+    public async Task ShouldAnonymizeAsync_WithDefaultReplace()
+    {
+        var engine = new PiiEngine();
+
+        (await engine.AnonymizeAsync("email john@example.com")).Text.Should().Be("email <EMAIL_ADDRESS>");
+    }
+
+    [Fact]
+    public async Task ShouldRoundTrip_DeidentifyAsyncThenReidentify()
+    {
+        var engine = new PiiEngine(new PiiOptions
+        {
+            Operators = new Dictionary<string, OperatorConfig>
+            {
+                ["DEFAULT"] = new("encrypt", new Dictionary<string, object> { [OperatorParams.Key] = Key }),
+            },
+        });
+
+        const string text = "Contact mary@clinic.org about file 078-05-1120.";
+        var deid = await engine.DeidentifyAsync(text);
+        deid.IsReversible.Should().BeTrue();
+        deid.AnonymizedText.Should().NotContain("mary@clinic.org");
+
+        var reverseOps = new Dictionary<string, OperatorConfig>
+        {
+            ["DEFAULT"] = new("decrypt", new Dictionary<string, object> { [OperatorParams.Key] = Key }),
+        };
+        engine.Reidentify(deid, reverseOps).Text.Should().Be(text);
+    }
+
+    [Fact]
+    public async Task ShouldDetectExtraRecognizer_ViaAnalyzeAsync()
+    {
+        var engine = new PiiEngine(extraRecognizers: [new ExtraEntityStubRecognizer()]);
+
+        var results = await engine.AnalyzeAsync("codename bluebird is active");
+
+        results.Should().ContainSingle(r => r.EntityType == "CODENAME");
+    }
+
+    /// <summary>An async-only recognizer standing in for a remote detector, added via the extra-recognizers hook.</summary>
+    private sealed class ExtraEntityStubRecognizer() : EntityRecognizer(["CODENAME"])
+    {
+        public override bool RequiresAsync => true;
+
+        public override IReadOnlyList<RecognizerResult> Analyze(string text, IReadOnlyList<string> entities) => [];
+
+        public override async ValueTask<IReadOnlyList<RecognizerResult>> AnalyzeAsync(
+            string text, IReadOnlyList<string> entities, CancellationToken ct = default)
+        {
+            await Task.Yield();
+
+            const string needle = "bluebird";
+            var index = text.IndexOf(needle, StringComparison.Ordinal);
+            return index < 0 ? [] : [new RecognizerResult("CODENAME", index, index + needle.Length, EntityRecognizer.MaxScore)];
+        }
     }
 }
