@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Optional Azure AI Language PII detection for TasmanianDevil. Calls the Azure AI Language PII entity recognition REST API directly (no SDK dependency) and merges the returned entity spans - including native Person and full street Address categories - into the TasmanianDevil analyzer/anonymizer pipeline as an ordinary async recognizer. Detector only - anonymization stays local.</Description>
+    <PackageId>TasmanianDevil.Azure</PackageId>
+    <RootNamespace>TasmanianDevil.Azure</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TasmanianDevil.Azure.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TasmanianDevil/TasmanianDevil.csproj" />
+  </ItemGroup>
+</Project>
