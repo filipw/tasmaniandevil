@@ -236,15 +236,19 @@ registry.AddRecognizer(ner);   // PERSON/LOCATION/... now join the same analyzer
 <!-- ── Remote ─────────────────────────────────────── -->
 <section id="remote" class="alt">
   <p class="section-label">Optional out-of-process detection</p>
-  <h2 class="section-title">When even the ONNX model is too heavy.</h2>
+  <h2 class="section-title">Move detection out of process.</h2>
   <p class="section-subtitle">
     <code>TasmanianDevil.Remote</code> (a generic HTTP contract - point it at any compatible sidecar) and
-    <code>TasmanianDevil.Azure</code> (Azure AI Language's native Person/Address) move PERSON/ADDRESS
-    detection out of process, for containers too small for the ~580 MB GLiNER model. Both are
-    <strong>detectors, not redactors</strong> - entity spans flow through the same analyzer/anonymizer
-    pipeline as every other recognizer, so redaction always stays local. The engine is async-first:
-    a remote recognizer overrides <code>AnalyzeAsync</code>, fails open by default, and is registered
-    exactly like any other recognizer.
+    <code>TasmanianDevil.Azure</code> (direct Azure AI Language REST calls, no SDK dependency) move
+    detection out of process. Azure natively detects <code>PERSON</code>, <code>ADDRESS</code>,
+    <code>PHONE_NUMBER</code>, <code>EMAIL_ADDRESS</code>, <code>ORGANIZATION</code>, <code>DATE_TIME</code>,
+    <code>CREDIT_CARD</code>, <code>US_SSN</code>, <code>IP_ADDRESS</code>, <code>IBAN_CODE</code>, <code>URL</code> -
+    <code>PERSON</code>/<code>ADDRESS</code> are the main reason to reach for it, since free-form names
+    and street addresses have no checksum or fixed structure for the offline engine to validate. Both
+    are <strong>detectors, not redactors</strong> - entity spans flow through the same
+    analyzer/anonymizer pipeline as every other recognizer, so redaction always stays local. The engine
+    is async-first: a remote recognizer overrides <code>AnalyzeAsync</code>, fails open by default, and
+    is registered exactly like any other recognizer.
   </p>
 <pre><code>using TasmanianDevil.Remote;
 

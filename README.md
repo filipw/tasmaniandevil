@@ -110,11 +110,17 @@ registry.AddRecognizer(ner);   // now PERSON/LOCATION/... join the same analyzer
 
 ## Optional out-of-process detection (Remote / Azure)
 
-`TasmanianDevil.Onnx`'s GLiNER model is ~580 MB - too heavy for some containers (e.g. a 0.5 vCPU /
-500 MB deployment that's fine with the ~22 MB injection classifiers). Two add-ons let PERSON/ADDRESS
-detection move **out of process** instead, while anonymization stays local - both are detectors, not
-redactors: they return entity spans that flow through the same `AnalyzerEngine`/`AnonymizerEngine` as
-every other recognizer.
+Two add-ons let PII detection move **out of process** instead, while anonymization stays local - both
+are detectors, not redactors: they return entity spans that flow through the same
+`AnalyzerEngine`/`AnonymizerEngine` as every other recognizer.
+
+`TasmanianDevil.Remote` speaks a generic HTTP contract - point it at any compatible service.
+`TasmanianDevil.Azure` talks directly to the Azure AI Language REST API (no `Azure.AI.TextAnalytics`
+SDK dependency), natively detecting `PERSON`, `ADDRESS`, `PHONE_NUMBER`, `EMAIL_ADDRESS`,
+`ORGANIZATION`, `DATE_TIME`, `CREDIT_CARD`, `US_SSN`, `IP_ADDRESS`, `IBAN_CODE`, `URL` (see
+`AzurePiiCategoryMap`) - configure `SupportedEntities`/`PiiCategories` for whichever subset you need.
+`PERSON`/`ADDRESS` are the main reason to reach for it: free-form names and street addresses have no
+checksum or fixed structure for the offline engine to validate.
 
 > **Privacy note.** Both send the raw, unredacted analyzed text off-box. This is the inherent tradeoff
 > of remote detection - only use it when you've accepted that, and prefer a network boundary you
