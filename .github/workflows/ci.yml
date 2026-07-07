@@ -29,4 +29,10 @@ jobs:
         run: dotnet build TasmanianDevil.slnx -c Release --no-restore
 
       - name: Test
+        env:
+          # Gates the Azure AI Language e2e tests (TasmanianDevil.Azure.Tests/AzureLanguagePiiE2ETests.cs);
+          # they self-skip via AzureLanguageFactAttribute when these are unset. GitHub does not expose repo
+          # secrets to workflows triggered by pull_request from forks, so those runs skip safely too.
+          AZURE_LANGUAGE_ENDPOINT: ${{ secrets.AZURE_LANGUAGE_ENDPOINT }}
+          AZURE_LANGUAGE_KEY: ${{ secrets.AZURE_LANGUAGE_KEY }}
         run: dotnet test TasmanianDevil.slnx -c Release --no-build --verbosity normal
