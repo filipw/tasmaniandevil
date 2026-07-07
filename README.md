@@ -108,6 +108,70 @@ var ner = new GlinerNerRecognizer(new GlinerNerOptions
 registry.AddRecognizer(ner);   // now PERSON/LOCATION/... join the same analyzer pass
 ```
 
+## Optional out-of-process detection (Remote / Azure)
+
+Two add-ons let PII detection move **out of process** instead, while anonymization stays local - both
+are detectors, not redactors: they return entity spans that flow through the same
+`AnalyzerEngine`/`AnonymizerEngine` as every other recognizer.
+
+`TasmanianDevil.Remote` speaks a generic HTTP contract - point it at any compatible service.
+`TasmanianDevil.Azure` talks directly to the Azure AI Language REST API (no `Azure.AI.TextAnalytics`
+SDK dependency), natively detecting `PERSON`, `ADDRESS`, `PHONE_NUMBER`, `EMAIL_ADDRESS`,
+`ORGANIZATION`, `DATE_TIME`, `CREDIT_CARD`, `US_SSN`, `IP_ADDRESS`, `IBAN_CODE`, `URL` (see
+`AzurePiiCategoryMap`) - configure `SupportedEntities`/`PiiCategories` for whichever subset you need.
+`PERSON`/`ADDRESS` are the main reason to reach for it: free-form names and street addresses have no
+checksum or fixed structure for the offline engine to validate.
+
+> **Privacy note.** Both send the raw, unredacted analyzed text off-box. This is the inherent tradeoff
+> of remote detection - only use it when you've accepted that, and prefer a network boundary you
+> control over a public hop where possible.
+
+```
+dotnet add package TasmanianDevil.Remote   # generic HTTP contract - point at any compatible service
+dotnet add package TasmanianDevil.Azure    # Azure AI Language - native Person + full street Address
+```
+
+The engine is **async-first**: `EntityRecognizer` has an `AnalyzeAsync` alongside sync `Analyze`
+(defaulting to a zero-cost wrapper), and `AnalyzerEngine`/`PiiEngine` both expose `AnalyzeAsync`/
+`AnonymizeAsync`/`DeidentifyAsync` counterparts. A remote recognizer is "just an async
+`EntityRecognizer`" - it overrides `AnalyzeAsync`, leaves sync `Analyze` returning nothing, and the
+sync API path silently ignores it.
+
+```csharp
+using TasmanianDevil.Remote;
+
+var registry = PiiRecognizers.CreateRegistry("en");
+registry.AddRecognizer(new RemotePiiRecognizer(
+    new HttpPiiDetectionClient(new RemotePiiOptions { Endpoint = endpoint, SupportedEntities = [PiiEntities.Person] }),
+    new RemotePiiOptions { Endpoint = endpoint, SupportedEntities = [PiiEntities.Person] }));
+
+var engine = new PiiEngine(analyzer: new AnalyzerEngine(registry));
+var result = await engine.AnonymizeAsync("Hi, this is John Smith.");
+```
+
+Or, for the Azure detector (native `Person`/`Address`, no `Azure.AI.TextAnalytics` SDK dependency):
+
+```csharp
+using TasmanianDevil.Azure;
+
+var client = new AzurePiiClient(new AzurePiiOptions
+{
+    Endpoint = azureEndpoint,
+    SubscriptionKey = azureKey,
+    SupportedEntities = [PiiEntities.Person, PiiEntities.Address],
+});
+registry.AddRecognizer(new AzurePiiRecognizer(client, new AzurePiiOptions { /* same options */ }));
+```
+
+Both fail open by default (a remote failure yields no results for that request rather than throwing, so
+local recognizers still redact what they can) and clamp/validate everything the remote side returns
+(entity type must be among what was requested, score clamped to `[0,1]`, offsets must fit the analyzed
+text) before trusting it. See each package's XML docs for the full option surface (timeout, auth,
+category-map override, confidence threshold). The guardrail-level integration
+(`.RedactPiiWithRemote()`/`.RedactPiiWithAzure()`) lives in [AgentGuard](https://github.com/filipw/AgentGuard)'s
+`AgentGuard.RemotePii`/`AgentGuard.Azure` packages - see its `docs/remote-pii.md` for the full wire
+contract, a sidecar recipe, and managed-identity setup.
+
 ## Attribution
 
 See `THIRD_PARTY_NOTICES.txt` (Microsoft Presidio MIT, CommonRegex MIT, libphonenumber Apache-2.0,

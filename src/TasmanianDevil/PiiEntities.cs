@@ -178,4 +178,9 @@ public static class PiiEntities
 
     /// <summary>A date or time expression. Detected only by the optional GLiNER NER add-on.</summary>
     public const string DateTime = "DATE_TIME";
+
+    // remote detection (optional TasmanianDevil.Remote / TasmanianDevil.Azure add-ons)
+
+    /// <summary>A street address. Detected only by an optional remote PII detector (e.g. Azure AI Language).</summary>
+    public const string Address = "ADDRESS";
 }

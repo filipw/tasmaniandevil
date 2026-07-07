@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Optional out-of-process PII detection for TasmanianDevil. Calls a generic HTTP detector (e.g. a TasmanianDevil + GLiNER sidecar) and merges the returned entity spans into the TasmanianDevil analyzer/anonymizer pipeline as an ordinary async recognizer. Detector only - anonymization stays local.</Description>
+    <PackageId>TasmanianDevil.Remote</PackageId>
+    <RootNamespace>TasmanianDevil.Remote</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TasmanianDevil.Remote.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../TasmanianDevil/TasmanianDevil.csproj" />
+  </ItemGroup>
+</Project>

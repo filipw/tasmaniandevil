@@ -2,6 +2,8 @@
   <Folder Name="/src/">
     <Project Path="src/TasmanianDevil/TasmanianDevil.csproj" />
     <Project Path="src/TasmanianDevil.Onnx/TasmanianDevil.Onnx.csproj" />
+    <Project Path="src/TasmanianDevil.Remote/TasmanianDevil.Remote.csproj" />
+    <Project Path="src/TasmanianDevil.Azure/TasmanianDevil.Azure.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/PiiShowcase/PiiShowcase.csproj" />
@@ -9,5 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/TasmanianDevil.Tests/TasmanianDevil.Tests.csproj" />
     <Project Path="tests/TasmanianDevil.Onnx.Tests/TasmanianDevil.Onnx.Tests.csproj" />
+    <Project Path="tests/TasmanianDevil.Remote.Tests/TasmanianDevil.Remote.Tests.csproj" />
+    <Project Path="tests/TasmanianDevil.Azure.Tests/TasmanianDevil.Azure.Tests.csproj" />
   </Folder>
 </Solution>

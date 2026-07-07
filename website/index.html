@@ -18,6 +18,7 @@
       <li><a href="#coverage">Coverage</a></li>
       <li><a href="#operators">Operators</a></li>
       <li><a href="#ner">NER</a></li>
+      <li><a href="#remote">Remote</a></li>
       <li><a href="https://github.com/filipw/tasmaniandevil">GitHub</a></li>
     </ul>
   </div>
@@ -230,6 +231,38 @@ var ner = new GlinerNerRecognizer(new GlinerNerOptions
 });
 
 registry.AddRecognizer(ner);   // PERSON/LOCATION/... now join the same analyzer pass</code></pre>
+</section>
+
+<!-- ── Remote ─────────────────────────────────────── -->
+<section id="remote" class="alt">
+  <p class="section-label">Optional out-of-process detection</p>
+  <h2 class="section-title">Move detection out of process.</h2>
+  <p class="section-subtitle">
+    <code>TasmanianDevil.Remote</code> (a generic HTTP contract - point it at any compatible sidecar) and
+    <code>TasmanianDevil.Azure</code> (direct Azure AI Language REST calls, no SDK dependency) move
+    detection out of process. Azure natively detects <code>PERSON</code>, <code>ADDRESS</code>,
+    <code>PHONE_NUMBER</code>, <code>EMAIL_ADDRESS</code>, <code>ORGANIZATION</code>, <code>DATE_TIME</code>,
+    <code>CREDIT_CARD</code>, <code>US_SSN</code>, <code>IP_ADDRESS</code>, <code>IBAN_CODE</code>, <code>URL</code> -
+    <code>PERSON</code>/<code>ADDRESS</code> are the main reason to reach for it, since free-form names
+    and street addresses have no checksum or fixed structure for the offline engine to validate. Both
+    are <strong>detectors, not redactors</strong> - entity spans flow through the same
+    analyzer/anonymizer pipeline as every other recognizer, so redaction always stays local. The engine
+    is async-first: a remote recognizer overrides <code>AnalyzeAsync</code>, fails open by default, and
+    is registered exactly like any other recognizer.
+  </p>
+<pre><code>using TasmanianDevil.Remote;
+
+var registry = PiiRecognizers.CreateRegistry("en");
+registry.AddRecognizer(new RemotePiiRecognizer(
+    new HttpPiiDetectionClient(remoteOptions), remoteOptions));
+
+var engine = new PiiEngine(analyzer: new AnalyzerEngine(registry));
+var result = await engine.AnonymizeAsync("Hi, this is John Smith.");</code></pre>
+  <p class="section-subtitle">
+    Privacy note: both send the raw, unredacted text off-box - see each package's README/XML docs, or
+    <a href="https://github.com/filipw/AgentGuard/blob/main/docs/remote-pii.md">AgentGuard's remote-pii.md</a>
+    for the full wire contract, a sidecar recipe, and Azure managed-identity setup.
+  </p>
 </section>
 
 <!-- ── Footer ─────────────────────────────────────── -->

@@ -47,12 +47,8 @@ public sealed class AnalyzerEngine
         AllowListMatch allowListMatch = AllowListMatch.Exact,
         IReadOnlyList<string>? context = null)
     {
-        var allFields = entities is null || entities.Count == 0;
         var recognizers = _registry.GetRecognizers(language, entities);
-
-        var effectiveEntities = allFields
-            ? _registry.GetSupportedEntities(language)
-            : entities!;
+        var effectiveEntities = EffectiveEntities(language, entities);
 
         var results = new List<RecognizerResult>();
         foreach (var recognizer in recognizers)
@@ -65,6 +61,56 @@ public sealed class AnalyzerEngine
             }
         }
 
+        return PostProcess(text, results, recognizers, scoreThreshold, allowList, allowListMatch, context);
+    }
+
+    /// <summary>
+    /// Asynchronously detects PII entities in <paramref name="text"/>, awaiting each recognizer in turn
+    /// (sequentially). Synchronous recognizers resolve their <see cref="EntityRecognizer.AnalyzeAsync"/>
+    /// call synchronously, so mixing sync and async recognizers in one registry costs nothing extra for
+    /// the sync ones.
+    /// </summary>
+    public async ValueTask<IReadOnlyList<RecognizerResult>> AnalyzeAsync(
+        string text,
+        string language = "en",
+        IReadOnlyList<string>? entities = null,
+        double? scoreThreshold = null,
+        IReadOnlyList<string>? allowList = null,
+        AllowListMatch allowListMatch = AllowListMatch.Exact,
+        IReadOnlyList<string>? context = null,
+        CancellationToken ct = default)
+    {
+        var recognizers = _registry.GetRecognizers(language, entities);
+        var effectiveEntities = EffectiveEntities(language, entities);
+
+        var results = new List<RecognizerResult>();
+        foreach (var recognizer in recognizers)
+        {
+            var current = await recognizer.AnalyzeAsync(text, effectiveEntities, ct).ConfigureAwait(false);
+            if (current.Count > 0)
+            {
+                AddRecognizerIdIfMissing(current, recognizer);
+                results.AddRange(current);
+            }
+        }
+
+        return PostProcess(text, results, recognizers, scoreThreshold, allowList, allowListMatch, context);
+    }
+
+    private IReadOnlyList<string> EffectiveEntities(string language, IReadOnlyList<string>? entities) =>
+        entities is null || entities.Count == 0
+            ? _registry.GetSupportedEntities(language)
+            : entities;
+
+    private List<RecognizerResult> PostProcess(
+        string text,
+        List<RecognizerResult> results,
+        IReadOnlyList<EntityRecognizer> recognizers,
+        double? scoreThreshold,
+        IReadOnlyList<string>? allowList,
+        AllowListMatch allowListMatch,
+        IReadOnlyList<string>? context)
+    {
         var enhanced = _contextAwareEnhancer.EnhanceUsingContext(text, results, recognizers, context).ToList();
 
         var deduped = EntityRecognizer.RemoveDuplicates(enhanced);
