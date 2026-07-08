@@ -1,7 +1,7 @@
 name: Release
 
-# Publishes TasmanianDevil + TasmanianDevil.Onnx to NuGet on a version tag, e.g.
-# `git tag v0.1.0 && git push origin v0.1.0`.
+# Publishes TasmanianDevil, TasmanianDevil.Onnx, TasmanianDevil.Remote, and TasmanianDevil.Azure to
+# NuGet on a version tag, e.g. `git tag v0.1.0 && git push origin v0.1.0`.
 # Note: TasmanianDevil.Onnx depends on Kyoto, so publish the Kyoto package first.
 on:
   push:
@@ -36,6 +36,8 @@ jobs:
         run: |
           dotnet pack src/TasmanianDevil/TasmanianDevil.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
           dotnet pack src/TasmanianDevil.Onnx/TasmanianDevil.Onnx.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
+          dotnet pack src/TasmanianDevil.Remote/TasmanianDevil.Remote.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
+          dotnet pack src/TasmanianDevil.Azure/TasmanianDevil.Azure.csproj -c Release -p:Version=${{ steps.ver.outputs.version }} -o artifacts
 
       - name: NuGet trusted publishing login
         uses: NuGet/login@v1
