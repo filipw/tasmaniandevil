@@ -93,7 +93,7 @@ public static class PiiRecognizers
                 new UsMbiRecognizer(supportedLanguage: language),
                 new MedicalLicenseRecognizer(supportedLanguage: language),
             ],
-            "uk" =>
+            PiiCountries.Uk =>
             [
                 new UkNinoRecognizer(supportedLanguage: language),
                 new UkNhsRecognizer(supportedLanguage: language),
@@ -102,7 +102,7 @@ public static class PiiRecognizers
                 new UkDrivingLicenceRecognizer(supportedLanguage: language),
                 new UkVehicleRegistrationRecognizer(supportedLanguage: language),
             ],
-            "de" =>
+            PiiCountries.De =>
             [
                 new DeIdCardRecognizer(supportedLanguage: language),
                 new DeTaxIdRecognizer(supportedLanguage: language),
@@ -115,7 +115,7 @@ public static class PiiRecognizers
                 new DeTaxNumberRecognizer(supportedLanguage: language),
                 new DeHandelsregisterRecognizer(supportedLanguage: language),
             ],
-            "in" =>
+            PiiCountries.In =>
             [
                 new InAadhaarRecognizer(supportedLanguage: language),
                 new InPanRecognizer(supportedLanguage: language),
@@ -124,7 +124,7 @@ public static class PiiRecognizers
                 new InVoterRecognizer(supportedLanguage: language),
                 new InVehicleRegistrationRecognizer(supportedLanguage: language),
             ],
-            "it" =>
+            PiiCountries.It =>
             [
                 new ItFiscalCodeRecognizer(supportedLanguage: language),
                 new ItVatCodeRecognizer(supportedLanguage: language),
@@ -132,11 +132,17 @@ public static class PiiRecognizers
                 new ItIdentityCardRecognizer(supportedLanguage: language),
                 new ItPassportRecognizer(supportedLanguage: language),
             ],
-            "es" =>
+            PiiCountries.Es =>
             [
                 new EsNifRecognizer(supportedLanguage: language),
                 new EsNieRecognizer(supportedLanguage: language),
                 new EsPassportRecognizer(supportedLanguage: language),
+            ],
+            PiiCountries.Nl =>
+            [
+                new NlPostcodeRecognizer(supportedLanguage: language),
+                new NlBSNRecognizer(supportedLanguage: language),
+                new NlPassportRecognizer(supportedLanguage: language),
             ],
             _ => [],
         };

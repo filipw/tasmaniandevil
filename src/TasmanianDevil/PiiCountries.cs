@@ -22,4 +22,7 @@ public static class PiiCountries
 
     /// <summary>Spain (NIF/DNI, NIE, passport).</summary>
     public const string Es = "es";
+
+    /// <summary>The Netherlands (BSN, postcode, passport).</summary>
+    public const string Nl = "nl";
 }

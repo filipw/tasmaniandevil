@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace TasmanianDevil.Analyzer;
@@ -12,7 +13,7 @@ public sealed class Pattern
     private RegexOptions _compiledWith;
 
     /// <summary>Initializes a new instance of the <see cref="Pattern"/> class.</summary>
-    public Pattern(string name, string regex, double score)
+    public Pattern(string name, [StringSyntax(StringSyntaxAttribute.Regex)] string regex, double score)
     {
         Name = name;
         Regex = regex;
@@ -23,6 +24,7 @@ public sealed class Pattern
     public string Name { get; }
 
     /// <summary>The regular expression source.</summary>
+    [StringSyntax(StringSyntaxAttribute.Regex)]
     public string Regex { get; }
 
     /// <summary>The base confidence score assigned to matches of this pattern.</summary>

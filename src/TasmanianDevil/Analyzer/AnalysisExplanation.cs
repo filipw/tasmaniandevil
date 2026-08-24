@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TasmanianDevil.Analyzer;
 
 /// <summary>
@@ -11,7 +13,7 @@ public sealed class AnalysisExplanation
         string recognizer,
         double originalScore,
         string? patternName = null,
-        string? pattern = null,
+        [StringSyntax(StringSyntaxAttribute.Regex)] string? pattern = null,
         bool? validationResult = null,
         string textualExplanation = "")
     {
@@ -31,6 +33,7 @@ public sealed class AnalysisExplanation
     public string? PatternName { get; }
 
     /// <summary>The regex pattern logic, when produced by a pattern recognizer.</summary>
+    [StringSyntax(StringSyntaxAttribute.Regex)]
     public string? Pattern { get; }
 
     /// <summary>The score originally assigned, before any validation or context enhancement.</summary>

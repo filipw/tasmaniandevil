@@ -31,7 +31,7 @@ bech32/bech32m), IP_ADDRESS (v4/v6), URL, MAC_ADDRESS, PHONE_NUMBER (libphonenum
 US_PASSPORT, US_NPI (Luhn), US_MBI, MEDICAL_LICENSE (DEA checksum).
 
 **Opt-in country packs** (enabling all at once inflates false positives, so you choose): `uk`, `de`,
-`in`, `it`, `es` - each with validated national IDs, tax numbers, passports, driving licences, vehicle
+`in`, `it`, `es`, `nl` - each with validated national IDs, tax numbers, passports, driving licences, vehicle
 registrations, etc.
 
 ## Quick start
