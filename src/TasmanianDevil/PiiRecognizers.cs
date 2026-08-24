@@ -4,6 +4,7 @@ using TasmanianDevil.Recognizers.Germany;
 using TasmanianDevil.Recognizers.India;
 using TasmanianDevil.Recognizers.Italy;
 using TasmanianDevil.Recognizers.Spain;
+using TasmanianDevil.Recognizers.TheNetherlands;
 using TasmanianDevil.Recognizers.Uk;
 using TasmanianDevil.Recognizers.Us;
 

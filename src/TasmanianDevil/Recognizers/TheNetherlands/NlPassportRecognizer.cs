@@ -1,6 +1,6 @@
 using TasmanianDevil.Analyzer;
 
-namespace TasmanianDevil.Recognizers.Germany;
+namespace TasmanianDevil.Recognizers.TheNetherlands;
 
 /// <summary>
 /// Recognizer for Dutch passports (Paspoort).
