@@ -1,11 +1,12 @@
+using FluentAssertions;
 using TasmanianDevil.Analyzer;
 using TasmanianDevil.Recognizers.Germany;
 using TasmanianDevil.Recognizers.India;
 using TasmanianDevil.Recognizers.Italy;
 using TasmanianDevil.Recognizers.Spain;
+using TasmanianDevil.Recognizers.TheNetherlands;
 using TasmanianDevil.Recognizers.Uk;
 using TasmanianDevil.Recognizers.Us;
-using FluentAssertions;
 using Xunit;
 
 namespace TasmanianDevil.Tests;
@@ -191,5 +192,72 @@ public class CountryRecognizerTests
         var r = new EsNieRecognizer();
         r.Analyze("X1234567L", All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
         r.Analyze("X1234567A", All).Should().BeEmpty();
+    }
+
+    // --- The Netherlands ---
+
+    [Theory]
+    [InlineData("123456782")]
+    [InlineData("744729063")]
+    public void ShouldValidateBsn_When11ProefValid(string bsn)
+    {
+        var r = new NlBSNRecognizer();
+        r.Analyze(bsn, All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("X")]
+    [InlineData("1")]
+    [InlineData("42")]
+    [InlineData("123456789")]
+    public void ShouldValidateBsn_When11ProefInvalid(string bsn)
+    {
+        var r = new NlBSNRecognizer();
+        r.Analyze(bsn, All).Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("1234 AB")]
+    [InlineData("5678 CD")]
+    public void ShouldValidatePostcode_WhenStructureValid(string postcode)
+    {
+        var r = new NlPostcodeRecognizer();
+        r.Analyze(postcode, All).Should().ContainSingle().Which.Score.Should().Be(0.95);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("X")]
+    [InlineData("1")]
+    [InlineData("0000AA")]
+    [InlineData("1234SA")]
+    [InlineData("1234SD")]
+    [InlineData("1234SS")]
+    public void ShouldValidatePostcode_WhenStructureInvalid(string postcode)
+    {
+        var r = new NlPostcodeRecognizer();
+        r.Analyze(postcode, All).Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("NL1234567")]
+    [InlineData("NX90R18C7")]
+    public void ShouldValidatePassport_WhenStructureValid(string passport)
+    {
+        var r = new NlPassportRecognizer();
+        r.Analyze(passport, All).Should().ContainSingle().Which.Score.Should().Be(0.80);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("X")]
+    [InlineData("1")]
+    [InlineData("NL123456")]
+    [InlineData("NX90R18C")]
+    public void ShouldValidatePassport_WhenStructureInvalid(string passport)
+    {
+        var r = new NlPassportRecognizer();
+        r.Analyze(passport, All).Should().BeEmpty();
     }
 }
