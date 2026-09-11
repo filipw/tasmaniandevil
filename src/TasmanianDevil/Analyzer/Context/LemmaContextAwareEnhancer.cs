@@ -56,7 +56,21 @@ public sealed class LemmaContextAwareEnhancer : IContextAwareEnhancer
         IReadOnlyList<EntityRecognizer> recognizers,
         IReadOnlyList<string>? externalContext = null)
     {
-        var recognizerById = recognizers.ToDictionary(r => r.Id);
+        // the same recognizer instance may legitimately appear twice in a registry; ToDictionary
+        // would throw on the duplicate Id, so build the lookup tolerantly
+        var recognizerById = new Dictionary<string, EntityRecognizer>(StringComparer.Ordinal);
+        foreach (var recognizer in recognizers)
+        {
+            recognizerById[recognizer.Id] = recognizer;
+        }
+
+        // tokenizing and stemming the whole text is the dominant cost of a call; skip it entirely
+        // when no result could be boosted anyway
+        if (rawResults.Count == 0 || !recognizers.Any(r => r.Context is { Count: > 0 }))
+        {
+            return rawResults;
+        }
+
         var external = externalContext?.Select(w => _normalizer.Normalize(w)).ToList() ?? [];
 
         var tokens = BuildTokens(text);
@@ -81,7 +95,7 @@ public sealed class LemmaContextAwareEnhancer : IContextAwareEnhancer
                 continue;
             }
 
-            var surrounding = ExtractSurroundingWords(tokens, result.Start);
+            var surrounding = ExtractSurroundingWords(tokens, result.Start, result.End);
             surrounding.AddRange(external);
 
             var supportiveWord = FindSupportiveWord(surrounding, recognizer.Context);
@@ -99,6 +113,19 @@ public sealed class LemmaContextAwareEnhancer : IContextAwareEnhancer
         return rawResults;
     }
 
+    // normalizes each whitespace-separated part separately, so a multi-word entry lines up with the
+    // token n-grams in ExtractSurroundingWords (which are built from individually normalized tokens)
+    private string NormalizePhrase(string phrase)
+    {
+        if (!phrase.Contains(' ', StringComparison.Ordinal))
+        {
+            return _normalizer.Normalize(phrase.Trim());
+        }
+
+        var parts = phrase.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return string.Join(' ', parts.Select(_normalizer.Normalize));
+    }
+
     private List<Token> BuildTokens(string text)
     {
         var raw = _normalizer.Tokenize(text);
@@ -112,18 +139,18 @@ public sealed class LemmaContextAwareEnhancer : IContextAwareEnhancer
         return tokens;
     }
 
-    private List<string> ExtractSurroundingWords(List<Token> tokens, int matchStart)
+    private List<string> ExtractSurroundingWords(List<Token> tokens, int matchStart, int matchEnd)
     {
         if (tokens.Count == 0)
         {
             return [];
         }
 
-        // find the token whose span covers matchStart, or the first token at/after it
+        // first token whose span reaches past matchStart
         var index = -1;
         for (var i = 0; i < tokens.Count; i++)
         {
-            if (tokens[i].Start == matchStart || matchStart < tokens[i].End)
+            if (matchStart < tokens[i].End)
             {
                 index = i;
                 break;
@@ -135,15 +162,52 @@ public sealed class LemmaContextAwareEnhancer : IContextAwareEnhancer
             index = tokens.Count - 1;
         }
 
+        // first token that starts at or after the entity's end - a multi-token entity
+        // (e.g. "123-45-6789") must not spend the suffix budget on its own tokens
+        var afterIndex = tokens.Count;
+        for (var i = index; i < tokens.Count; i++)
+        {
+            if (tokens[i].Start >= matchEnd)
+            {
+                afterIndex = i;
+                break;
+            }
+        }
+
         var words = new HashSet<string>(StringComparer.Ordinal);
 
         // collect up to prefixCount keyword tokens backward (the entity token counts, hence + 1)
         CollectKeywords(tokens, index, _contextPrefixCount + 1, isBackward: true, words);
 
-        // collect up to suffixCount keyword tokens forward (starts at the entity token, hence + 1)
-        CollectKeywords(tokens, index, _contextSuffixCount + 1, isBackward: false, words);
+        // collect up to suffixCount keyword tokens forward, starting past the entity
+        if (_contextSuffixCount > 0 && afterIndex < tokens.Count)
+        {
+            CollectKeywords(tokens, afterIndex, _contextSuffixCount, isBackward: false, words);
+        }
+
+        // multi-word context entries ("mac address", "driving licence") can never equal a single
+        // token, so also offer the adjacent token n-grams for matching
+        AddPhrases(tokens, index, afterIndex, words);
 
         return words.ToList();
+    }
+
+    // joins runs of up to MaxPhraseTokens adjacent tokens around the entity, so a context entry
+    // spanning several words has something to match against
+    private void AddPhrases(List<Token> tokens, int index, int afterIndex, HashSet<string> sink)
+    {
+        var from = Math.Max(0, index - (_contextPrefixCount + 1));
+        var to = Math.Min(tokens.Count, afterIndex + _contextSuffixCount);
+
+        for (var i = from; i < to; i++)
+        {
+            var phrase = tokens[i].Normalized;
+            for (var n = 1; n < MaxPhraseTokens && i + n < to; n++)
+            {
+                phrase = $"{phrase} {tokens[i + n].Normalized}";
+                sink.Add(phrase);
+            }
+        }
     }
 
     private static void CollectKeywords(List<Token> tokens, int index, int count, bool isBackward, HashSet<string> sink)
@@ -166,7 +230,7 @@ public sealed class LemmaContextAwareEnhancer : IContextAwareEnhancer
     {
         foreach (var contextWord in recognizerContext)
         {
-            var normalizedContext = _normalizer.Normalize(contextWord);
+            var normalizedContext = NormalizePhrase(contextWord);
             foreach (var word in surroundingWords)
             {
                 var matched = _contextMatchingMode == ContextMatchingMode.WholeWord
@@ -182,6 +246,10 @@ public sealed class LemmaContextAwareEnhancer : IContextAwareEnhancer
 
         return null;
     }
+
+    // longest multi-word context entry the built-in recognizers use is three tokens
+    // ("deutsche rentenversicherung", "bundeszentralamt fur steuern")
+    private const int MaxPhraseTokens = 4;
 
     private readonly record struct Token(string Normalized, int Start, int End, bool IsKeyword);
 }

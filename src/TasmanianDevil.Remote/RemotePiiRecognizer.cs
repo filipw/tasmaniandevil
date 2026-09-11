@@ -10,7 +10,7 @@ namespace TasmanianDevil.Remote;
 /// Fails open by default (see <see cref="RemotePiiOptions.FailOpen"/>): a remote failure yields no
 /// results rather than throwing, so local recognizers still redact what they can.
 /// </summary>
-public sealed class RemotePiiRecognizer : EntityRecognizer
+public sealed class RemotePiiRecognizer : EntityRecognizer, IDisposable
 {
     private readonly IPiiDetectionClient _client;
     private readonly RemotePiiOptions _options;
@@ -37,6 +37,14 @@ public sealed class RemotePiiRecognizer : EntityRecognizer
 
     /// <inheritdoc />
     public override bool RequiresAsync => true;
+
+    /// <summary>
+    /// Disposes the underlying client when it implements <see cref="IDisposable"/>. The single-argument
+    /// client constructors create and own an <see cref="HttpClient"/>, so without this its handler and
+    /// connection pool would leak; a client built from a caller-supplied
+    /// <see cref="HttpClient"/> leaves that instance alone.
+    /// </summary>
+    public void Dispose() => (_client as IDisposable)?.Dispose();
 
     /// <inheritdoc />
     public override IReadOnlyList<RecognizerResult> Analyze(string text, IReadOnlyList<string> entities) => [];

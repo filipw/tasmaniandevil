@@ -21,7 +21,7 @@ public static class PiiRecognizers
     public static IReadOnlyList<EntityRecognizer> CreateDefault(string language = "en") =>
     [
         .. CreateGeneric(language),
-        .. CreateForCountry("us", language),
+        .. CreateForCountry(PiiCountries.Us, language),
     ];
 
     /// <summary>Creates a registry pre-loaded with the default recognizers (generic + US).</summary>
@@ -42,7 +42,7 @@ public static class PiiRecognizers
         {
             // dedup on the resolved pack, not the raw code, so aliases (e.g. "gb"/"uk") and the
             // always-on US pack are never added twice
-            var seen = new HashSet<string>(StringComparer.Ordinal) { "us" };
+            var seen = new HashSet<string>(StringComparer.Ordinal) { PiiCountries.Us };
             foreach (var country in countries)
             {
                 if (seen.Add(CanonicalCountry(country)))
@@ -82,7 +82,7 @@ public static class PiiRecognizers
     public static IReadOnlyList<EntityRecognizer> CreateForCountry(string country, string language = "en") =>
         CanonicalCountry(country) switch
         {
-            "us" =>
+            PiiCountries.Us =>
             [
                 new UsSsnRecognizer(supportedLanguage: language),
                 new UsItinRecognizer(supportedLanguage: language),
@@ -105,9 +105,8 @@ public static class PiiRecognizers
             ],
             PiiCountries.De =>
             [
-                new DeIdCardRecognizer(supportedLanguage: language),
+                new DeIdDocumentRecognizer(supportedLanguage: language),
                 new DeTaxIdRecognizer(supportedLanguage: language),
-                new DePassportRecognizer(supportedLanguage: language),
                 new DePlzRecognizer(supportedLanguage: language),
                 new DeSocialSecurityRecognizer(supportedLanguage: language),
                 new DeVatIdRecognizer(supportedLanguage: language),
@@ -142,7 +141,7 @@ public static class PiiRecognizers
             PiiCountries.Nl =>
             [
                 new NlPostcodeRecognizer(supportedLanguage: language),
-                new NlBSNRecognizer(supportedLanguage: language),
+                new NlBsnRecognizer(supportedLanguage: language),
                 new NlPassportRecognizer(supportedLanguage: language),
             ],
             _ => [],

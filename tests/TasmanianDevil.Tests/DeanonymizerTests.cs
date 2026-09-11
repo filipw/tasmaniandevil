@@ -91,12 +91,42 @@ public class DeanonymizerTests
     [Fact]
     public void ShouldFailClearly_WhenCiphertextTruncated()
     {
-        // a corrupted/truncated span that is still valid base64url but decodes to < 16 bytes (no IV)
+        // a corrupted/truncated span that is still valid base64url but is too short to hold the
+        // version byte, nonce and authentication tag
         var items = new List<OperatorResult> { new(0, 4, "EMAIL_ADDRESS", "AAAA", "encrypt") };
 
         var act = () => _deanonymizer.Deanonymize("AAAA", items, DecryptWith(Key));
 
-        act.Should().Throw<InvalidOperationException>().WithMessage("*not a valid*ciphertext*");
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Decryption failed*");
+    }
+
+    [Fact]
+    public void ShouldFailClearly_WhenCiphertextIsNotBase64Url()
+    {
+        var items = new List<OperatorResult> { new(0, 3, "EMAIL_ADDRESS", "!!!", "encrypt") };
+
+        var act = () => _deanonymizer.Deanonymize("!!!", items, DecryptWith(Key));
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*not a valid base64url ciphertext*");
+    }
+
+    [Fact]
+    public void ShouldDetectTampering_BecauseEncryptionIsAuthenticated()
+    {
+        const string Text = "Contact john@example.com";
+        var results = new List<RecognizerResult> { new("EMAIL_ADDRESS", 8, 24, 1.0) };
+        var anonymized = _anonymizer.Anonymize(Text, results, EncryptWith(Key));
+
+        // flip one character of the ciphertext span; AES-GCM must reject it rather than return
+        // altered plaintext the way unauthenticated CBC would
+        var item = anonymized.Items[0];
+        var token = item.Text;
+        var tampered = token[..^1] + (token[^1] == 'A' ? 'B' : 'A');
+        var items = new List<OperatorResult> { new(0, tampered.Length, "EMAIL_ADDRESS", tampered, "encrypt") };
+
+        var act = () => _deanonymizer.Deanonymize(tampered, items, DecryptWith(Key));
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*tampered*");
     }
 
     [Fact]

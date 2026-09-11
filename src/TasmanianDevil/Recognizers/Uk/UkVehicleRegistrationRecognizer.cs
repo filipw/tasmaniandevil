@@ -50,7 +50,8 @@ public sealed class UkVehicleRegistrationRecognizer : PatternRecognizer
             if (ageId.All(char.IsDigit))
             {
                 var age = int.Parse(ageId, System.Globalization.CultureInfo.InvariantCulture);
-                return (age is >= 2 and <= 29) || (age is >= 51 and <= 79);
+                // March registrations use 01-49, September registrations 51-99
+                return (age is >= 1 and <= 49) || (age is >= 51 and <= 99);
             }
         }
 

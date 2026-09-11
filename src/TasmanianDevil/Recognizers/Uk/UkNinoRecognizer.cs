@@ -11,7 +11,7 @@ public sealed class UkNinoRecognizer : PatternRecognizer
     [
         new Pattern(
             "NINO (medium)",
-            @"\b(?!bg|gb|nk|kn|nt|tn|zz|BG|GB|NK|KN|NT|TN|ZZ) ?([a-ceghj-pr-tw-zA-CEGHJ-PR-TW-Z]{1}[a-ceghj-npr-tw-zA-CEGHJ-NPR-TW-Z]{1}) ?([0-9]{2}) ?([0-9]{2}) ?([0-9]{2}) ?([a-dA-D{1}])\b",
+            @"\b(?!bg|gb|nk|kn|nt|tn|zz)([a-ceghj-pr-tw-z][a-ceghj-npr-tw-z]) ?([0-9]{2}) ?([0-9]{2}) ?([0-9]{2}) ?([a-d])\b",
             0.5),
     ];
 

@@ -21,6 +21,11 @@ public sealed class AzurePiiOptions
     /// is applied), e.g. <c>[PiiEntities.Person, PiiEntities.Address]</c>. Drives registry selection and
     /// filters the Azure response: any returned entity that doesn't map into this set is dropped.
     /// </summary>
+    /// <remarks>
+    /// These are <b>canonical TasmanianDevil</b> entity types (use the <see cref="PiiEntities"/>
+    /// constants), not Azure category names - do not confuse this with
+    /// <see cref="PiiCategories"/>, which takes Azure's own wire vocabulary.
+    /// </remarks>
     public required IReadOnlyList<string> SupportedEntities { get; init; }
 
     /// <summary>The analysis language sent to Azure. Defaults to <c>en</c>.</summary>
@@ -52,6 +57,12 @@ public sealed class AzurePiiOptions
     /// Azure entity category names to request (e.g. <c>["Person", "Address"]</c>). When null, Azure
     /// returns its default category set for the language.
     /// </summary>
+    /// <remarks>
+    /// These are <b>Azure AI Language category names</b> as they appear on the wire (e.g.
+    /// <c>"Person"</c>, <c>"USSocialSecurityNumber"</c>), not TasmanianDevil entity types - putting
+    /// <c>PiiEntities.Person</c> ("PERSON") here would filter the service down to nothing. Contrast
+    /// <see cref="SupportedEntities"/>, which takes the canonical vocabulary.
+    /// </remarks>
     public IReadOnlyList<string>? PiiCategories { get; init; }
 
     /// <summary>

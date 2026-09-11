@@ -87,14 +87,16 @@ public static class PiiEntities
 
     // Germany pack (opt-in via PiiCountries.De)
 
-    /// <summary>German national identity card number (ICAO check digit).</summary>
-    public const string DeIdCard = "DE_ID_CARD";
+    /// <summary>
+    /// German identity document serial - Personalausweis (nPA) or Reisepass, ICAO check digit. The two
+    /// share one format and cannot be told apart by the number alone, so they are a single entity type.
+    /// Replaces the former <c>DE_ID_CARD</c> and <c>DE_PASSPORT</c>.
+    /// </summary>
+    public const string DeIdDocument = "DE_ID_DOCUMENT";
 
     /// <summary>German tax identification number (ISO-7064 validated).</summary>
     public const string DeTaxId = "DE_TAX_ID";
 
-    /// <summary>German passport number (ICAO check digit).</summary>
-    public const string DePassport = "DE_PASSPORT";
 
     /// <summary>German postal code (PLZ).</summary>
     public const string DePlz = "DE_PLZ";
@@ -165,7 +167,18 @@ public static class PiiEntities
     /// <summary>Spanish passport number.</summary>
     public const string EsPassport = "ES_PASSPORT";
 
-    // named-entity recognition (optional ONNX add-on - see RedactPiiWithNer)
+    // The Netherlands pack (opt-in via PiiCountries.Nl)
+
+    /// <summary>Dutch social security number (BSN, 11-proef validated).</summary>
+    public const string NlBsn = "NL_BSN";
+
+    /// <summary>Dutch postal code (postcode).</summary>
+    public const string NlPostcode = "NL_POSTCODE";
+
+    /// <summary>Dutch passport / identity card number.</summary>
+    public const string NlPassport = "NL_PASSPORT";
+
+    // named-entity recognition (optional ONNX add-on)
 
     /// <summary>A person's name. Detected only by the optional GLiNER NER add-on.</summary>
     public const string Person = "PERSON";

@@ -33,7 +33,8 @@ public sealed class BatchAnonymizerEngine
         IReadOnlyList<string> texts,
         IReadOnlyList<IReadOnlyList<RecognizerResult>> analyzerResults,
         IReadOnlyDictionary<string, OperatorConfig>? operators = null,
-        ConflictResolutionStrategy conflictResolution = ConflictResolutionStrategy.MergeSimilarOrContained)
+        ConflictResolutionStrategy conflictResolution = ConflictResolutionStrategy.MergeSimilarOrContained,
+        bool mergeEntitiesWithSpaces = true)
     {
         ArgumentNullException.ThrowIfNull(texts);
         ArgumentNullException.ThrowIfNull(analyzerResults);
@@ -45,7 +46,7 @@ public sealed class BatchAnonymizerEngine
         var results = new List<EngineResult>(texts.Count);
         for (var i = 0; i < texts.Count; i++)
         {
-            results.Add(_anonymizer.Anonymize(texts[i], analyzerResults[i], operators, conflictResolution));
+            results.Add(_anonymizer.Anonymize(texts[i], analyzerResults[i], operators, conflictResolution, mergeEntitiesWithSpaces));
         }
 
         return results;
@@ -60,7 +61,8 @@ public sealed class BatchAnonymizerEngine
         IReadOnlyDictionary<string, string> texts,
         IReadOnlyDictionary<string, IReadOnlyList<RecognizerResult>> analyzerResults,
         IReadOnlyDictionary<string, OperatorConfig>? operators = null,
-        ConflictResolutionStrategy conflictResolution = ConflictResolutionStrategy.MergeSimilarOrContained)
+        ConflictResolutionStrategy conflictResolution = ConflictResolutionStrategy.MergeSimilarOrContained,
+        bool mergeEntitiesWithSpaces = true)
     {
         ArgumentNullException.ThrowIfNull(texts);
         ArgumentNullException.ThrowIfNull(analyzerResults);
@@ -68,8 +70,16 @@ public sealed class BatchAnonymizerEngine
         var results = new Dictionary<string, EngineResult>(texts.Count, StringComparer.Ordinal);
         foreach (var (key, value) in texts)
         {
-            var entityResults = analyzerResults.TryGetValue(key, out var r) ? r : [];
-            results[key] = _anonymizer.Anonymize(value, entityResults, operators, conflictResolution);
+            // a missing key used to mean "no detections", which silently returned that record
+            // un-redacted; the list overload has always been strict about a shape mismatch
+            if (!analyzerResults.TryGetValue(key, out var entityResults))
+            {
+                throw new ArgumentException(
+                    $"analyzerResults has no entry for key '{key}'. Every key in texts must have a corresponding detection list.",
+                    nameof(analyzerResults));
+            }
+
+            results[key] = _anonymizer.Anonymize(value, entityResults, operators, conflictResolution, mergeEntitiesWithSpaces);
         }
 
         return results;

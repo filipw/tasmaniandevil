@@ -28,7 +28,7 @@ public sealed class UsItinRecognizer : PatternRecognizer
 
     /// <summary>Initializes a new instance of the <see cref="UsItinRecognizer"/> class.</summary>
     public UsItinRecognizer(string supportedEntity = "US_ITIN", string supportedLanguage = "en")
-        : base(supportedEntity, patterns: DefaultPatterns, context: DefaultContext, supportedLanguage: supportedLanguage)
+        : base(supportedEntity, patterns: DefaultPatterns, context: DefaultContext, supportedLanguage: supportedLanguage, countryCode: "us")
     {
     }
 }

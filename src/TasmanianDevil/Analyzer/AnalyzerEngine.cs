@@ -136,26 +136,59 @@ public sealed class AnalyzerEngine
         string text,
         AllowListMatch allowListMatch)
     {
-        if (allowListMatch == AllowListMatch.Regex)
+        var allowed = new List<RecognizerResult>();
+        var kept = new List<RecognizerResult>(results.Count);
+
+        var isAllowed = BuildAllowPredicate(allowList, allowListMatch);
+
+        foreach (var result in results)
         {
-            var pattern = string.Join("|", allowList);
-            var regex = new Regex(pattern, PatternRecognizer.DefaultRegexOptions, PatternRecognizer.DefaultTimeout);
-            return results.Where(r =>
+            if (isAllowed(text[result.Start..result.End]))
             {
-                var word = text[r.Start..r.End];
-                try
-                {
-                    return !regex.IsMatch(word);
-                }
-                catch (RegexMatchTimeoutException)
-                {
-                    return true;
-                }
-            }).ToList();
+                allowed.Add(result);
+            }
+            else
+            {
+                kept.Add(result);
+            }
         }
 
-        var allowed = new HashSet<string>(allowList, StringComparer.Ordinal);
-        return results.Where(r => !allowed.Contains(text[r.Start..r.End])).ToList();
+        if (allowed.Count == 0)
+        {
+            return kept;
+        }
+
+        // an allow-listed value must be exempt as a whole: recognizers routinely detect a narrower
+        // entity inside a wider one (the URL "acme.com" inside the address "support@acme.com"), and
+        // matching only each span's own text would redact part of a value the caller exempted.
+        return kept.Where(r => !allowed.Any(a => r.ContainedIn(a))).ToList();
+    }
+
+    private static Func<string, bool> BuildAllowPredicate(IReadOnlyList<string> allowList, AllowListMatch allowListMatch)
+    {
+        if (allowListMatch != AllowListMatch.Regex)
+        {
+            var allowed = new HashSet<string>(allowList, StringComparer.Ordinal);
+            return allowed.Contains;
+        }
+
+        var regex = new Regex(
+            string.Join("|", allowList),
+            PatternRecognizer.DefaultRegexOptions,
+            PatternRecognizer.DefaultTimeout);
+
+        return word =>
+        {
+            try
+            {
+                return regex.IsMatch(word);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // cannot confirm the term is exempt, so keep the detection (fail safe: redact)
+                return false;
+            }
+        };
     }
 
     private static void AddRecognizerIdIfMissing(IReadOnlyList<RecognizerResult> results, EntityRecognizer recognizer)

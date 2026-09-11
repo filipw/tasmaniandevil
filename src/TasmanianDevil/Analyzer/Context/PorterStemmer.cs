@@ -225,80 +225,32 @@ internal static class PorterStemmer
         return k;
     }
 
-    private static int Step2(char[] b, int k)
-    {
-        if (k <= 0)
-        {
-            return k;
-        }
+    // step 2/3/4 suffix tables, longest-first within each bucket so the first match is the longest
+    private static readonly (string Suffix, string Replacement)[] Step2Rules =
+    [
+        ("ational", "ate"), ("tional", "tion"), ("enci", "ence"), ("anci", "ance"), ("izer", "ize"),
+        ("bli", "ble"), ("alli", "al"), ("entli", "ent"), ("eli", "e"), ("ousli", "ous"),
+        ("ization", "ize"), ("ation", "ate"), ("ator", "ate"), ("alism", "al"), ("iveness", "ive"),
+        ("fulness", "ful"), ("ousness", "ous"), ("aliti", "al"), ("iviti", "ive"), ("biliti", "ble"),
+        ("logi", "log"),
+    ];
 
-        switch (b[k - 1])
-        {
-            case 'a':
-                k = TryReplace(b, k, "ational", "ate");
-                k = TryReplace(b, k, "tional", "tion");
-                break;
-            case 'c':
-                k = TryReplace(b, k, "enci", "ence");
-                k = TryReplace(b, k, "anci", "ance");
-                break;
-            case 'e':
-                k = TryReplace(b, k, "izer", "ize");
-                break;
-            case 'l':
-                k = TryReplace(b, k, "bli", "ble");
-                k = TryReplace(b, k, "alli", "al");
-                k = TryReplace(b, k, "entli", "ent");
-                k = TryReplace(b, k, "eli", "e");
-                k = TryReplace(b, k, "ousli", "ous");
-                break;
-            case 'o':
-                k = TryReplace(b, k, "ization", "ize");
-                k = TryReplace(b, k, "ation", "ate");
-                k = TryReplace(b, k, "ator", "ate");
-                break;
-            case 's':
-                k = TryReplace(b, k, "alism", "al");
-                k = TryReplace(b, k, "iveness", "ive");
-                k = TryReplace(b, k, "fulness", "ful");
-                k = TryReplace(b, k, "ousness", "ous");
-                break;
-            case 't':
-                k = TryReplace(b, k, "aliti", "al");
-                k = TryReplace(b, k, "iviti", "ive");
-                k = TryReplace(b, k, "biliti", "ble");
-                break;
-            case 'g':
-                k = TryReplace(b, k, "logi", "log");
-                break;
-        }
+    private static readonly (string Suffix, string Replacement)[] Step3Rules =
+    [
+        ("icate", "ic"), ("ative", ""), ("alize", "al"), ("iciti", "ic"), ("ical", "ic"),
+        ("ful", ""), ("ness", ""),
+    ];
 
-        return k;
-    }
+    // ordered longest-first so the first match is the longest, per the 1980 algorithm
+    private static readonly string[] Step4Suffixes =
+    [
+        "ement", "ance", "ence", "able", "ible", "ment", "ant", "ent", "ism", "ate",
+        "iti", "ous", "ive", "ize", "al", "er", "ic", "ou",
+    ];
 
-    private static int Step3(char[] b, int k)
-    {
-        switch (b[k])
-        {
-            case 'e':
-                k = TryReplace(b, k, "icate", "ic");
-                k = TryReplace(b, k, "ative", "");
-                k = TryReplace(b, k, "alize", "al");
-                break;
-            case 'i':
-                k = TryReplace(b, k, "iciti", "ic");
-                break;
-            case 'l':
-                k = TryReplace(b, k, "ical", "ic");
-                k = TryReplace(b, k, "ful", "");
-                break;
-            case 's':
-                k = TryReplace(b, k, "ness", "");
-                break;
-        }
+    private static int Step2(char[] b, int k) => ApplyLongest(b, k, Step2Rules, minMeasure: 0);
 
-        return k;
-    }
+    private static int Step3(char[] b, int k) => ApplyLongest(b, k, Step3Rules, minMeasure: 0);
 
     private static int Step4(char[] b, int k)
     {
@@ -307,57 +259,56 @@ internal static class PorterStemmer
             return k;
         }
 
-        switch (b[k - 1])
+        // "ion" is conditional on the stem ending in s or t, so it is handled ahead of the table
+        if (EndsWith(b, k, "ion") && k >= 3 && (b[k - 3] == 's' || b[k - 3] == 't'))
         {
-            case 'a':
-                k = TryRemove(b, k, "al");
-                break;
-            case 'c':
-                k = TryRemove(b, k, "ance");
-                k = TryRemove(b, k, "ence");
-                break;
-            case 'e':
-                k = TryRemove(b, k, "er");
-                break;
-            case 'i':
-                k = TryRemove(b, k, "ic");
-                break;
-            case 'l':
-                k = TryRemove(b, k, "able");
-                k = TryRemove(b, k, "ible");
-                break;
-            case 'n':
-                k = TryRemove(b, k, "ant");
-                k = TryRemove(b, k, "ement");
-                k = TryRemove(b, k, "ment");
-                k = TryRemove(b, k, "ent");
-                break;
-            case 'o':
-                if (EndsWith(b, k, "ion") && k >= 3 && (b[k - 3] == 's' || b[k - 3] == 't') && Measure(b, k - 3) > 1)
-                {
-                    k -= 3;
-                }
-
-                k = TryRemove(b, k, "ou");
-                break;
-            case 's':
-                k = TryRemove(b, k, "ism");
-                break;
-            case 't':
-                k = TryRemove(b, k, "ate");
-                k = TryRemove(b, k, "iti");
-                break;
-            case 'u':
-                k = TryRemove(b, k, "ous");
-                break;
-            case 'v':
-                k = TryRemove(b, k, "ive");
-                break;
-            case 'z':
-                k = TryRemove(b, k, "ize");
-                break;
+            return Measure(b, k - 3) > 1 ? k - 3 : k;
         }
 
+        // longest matching suffix only: if its measure condition fails, the step does nothing
+        foreach (var suffix in Step4Suffixes)
+        {
+            if (!EndsWith(b, k, suffix))
+            {
+                continue;
+            }
+
+            var stemEnd = k - suffix.Length;
+            return stemEnd >= 0 && Measure(b, stemEnd) > 1 ? stemEnd : k;
+        }
+
+        return k;
+    }
+
+    // finds the longest matching suffix in the table and applies it if the stem's measure qualifies;
+    // a failed condition ends the step without trying a shorter suffix, per the 1980 algorithm
+    private static int ApplyLongest(char[] b, int k, (string Suffix, string Replacement)[] rules, int minMeasure)
+    {
+        var bestIndex = -1;
+        var bestLength = 0;
+        for (var i = 0; i < rules.Length; i++)
+        {
+            var suffix = rules[i].Suffix;
+            if (suffix.Length > bestLength && EndsWith(b, k, suffix))
+            {
+                bestIndex = i;
+                bestLength = suffix.Length;
+            }
+        }
+
+        if (bestIndex < 0)
+        {
+            return k;
+        }
+
+        var (matched, replacement) = rules[bestIndex];
+        var stemEnd = k - matched.Length;
+        if (stemEnd < 0 || Measure(b, stemEnd) <= minMeasure)
+        {
+            return k;
+        }
+
+        SetTo(b, ref k, stemEnd, replacement);
         return k;
     }
 
@@ -380,37 +331,4 @@ internal static class PorterStemmer
         return k;
     }
 
-    // step 2/3 helper: when the word ends with suffix and the stem has measure > 0, replace it
-    private static int TryReplace(char[] b, int k, string suffix, string replacement)
-    {
-        if (!EndsWith(b, k, suffix))
-        {
-            return k;
-        }
-
-        var stemEnd = k - suffix.Length;
-        if (Measure(b, stemEnd) > 0)
-        {
-            SetTo(b, ref k, stemEnd, replacement);
-        }
-
-        return k;
-    }
-
-    // step 4 helper: remove the suffix when the stem has measure > 1
-    private static int TryRemove(char[] b, int k, string suffix)
-    {
-        if (!EndsWith(b, k, suffix))
-        {
-            return k;
-        }
-
-        var stemEnd = k - suffix.Length;
-        if (Measure(b, stemEnd) > 1)
-        {
-            k = stemEnd;
-        }
-
-        return k;
-    }
 }

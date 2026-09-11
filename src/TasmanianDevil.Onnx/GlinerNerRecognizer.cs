@@ -20,8 +20,10 @@ public sealed class GlinerNerRecognizer : EntityRecognizer, IDisposable
     private readonly GlinerModelSession _session;
     private readonly GlinerNerOptions _options;
 
-    // reverse map: TasmanianDevil entity type -> model prompt label (e.g. PERSON -> person)
-    private readonly Dictionary<string, string> _entityToLabel;
+    // reverse map: TasmanianDevil entity type -> every model prompt label mapped to it. A list, not
+    // a single label: mapping several labels onto one entity type (e.g. person + individual ->
+    // PERSON) is legitimate, and keeping only the last would silently drop the others from the prompt.
+    private readonly Dictionary<string, List<string>> _entityToLabel;
 
     // forward map: model prompt label -> TasmanianDevil entity type (e.g. person -> PERSON)
     private readonly Dictionary<string, string> _labelToEntity;
@@ -82,14 +84,20 @@ public sealed class GlinerNerRecognizer : EntityRecognizer, IDisposable
     private static void BuildLabelMaps(
         GlinerNerOptions options,
         out Dictionary<string, string> labelToEntity,
-        out Dictionary<string, string> entityToLabel)
+        out Dictionary<string, List<string>> entityToLabel)
     {
         labelToEntity = new Dictionary<string, string>(StringComparer.Ordinal);
-        entityToLabel = new Dictionary<string, string>(StringComparer.Ordinal);
+        entityToLabel = new Dictionary<string, List<string>>(StringComparer.Ordinal);
         foreach (var (label, entity) in options.EntityLabelMap)
         {
             labelToEntity[label] = entity;
-            entityToLabel[entity] = label;
+            if (!entityToLabel.TryGetValue(entity, out var labels))
+            {
+                labels = [];
+                entityToLabel[entity] = labels;
+            }
+
+            labels.Add(label);
         }
     }
 
@@ -105,7 +113,7 @@ public sealed class GlinerNerRecognizer : EntityRecognizer, IDisposable
         foreach (var entity in SupportedEntities)
         {
             if (requested is null || requested.Contains(entity))
-                activeLabels.Add(_entityToLabel[entity]);
+                activeLabels.AddRange(_entityToLabel[entity]);
         }
 
         if (activeLabels.Count == 0)
@@ -121,11 +129,16 @@ public sealed class GlinerNerRecognizer : EntityRecognizer, IDisposable
             if (!_labelToEntity.TryGetValue(span.Label, out var entityType))
                 continue;
 
+            // same hardening the remote detectors apply: a span outside the analyzed text would throw
+            // later when the anonymizer slices text[Start..End], and scores must stay in range
+            if (span.CharStart < 0 || span.CharEnd > text.Length || span.CharStart >= span.CharEnd)
+                continue;
+
             results.Add(new RecognizerResult(
                 entityType,
                 span.CharStart,
                 span.CharEnd,
-                span.Score,
+                Math.Clamp(span.Score, MinScore, MaxScore),
                 new Dictionary<string, object>
                 {
                     [RecognizerResult.RecognizerNameKey] = Name,

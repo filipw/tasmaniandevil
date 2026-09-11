@@ -20,14 +20,15 @@ public sealed class DecryptOperator : IOperator
         }
         catch (CryptographicException ex)
         {
-            // a wrong key produces a padding/block failure; surface it rather than returning ciphertext.
+            // AES-GCM authenticates, so this covers a wrong key, a tampered value, and a ciphertext
+            // written in the pre-0.3 AES-CBC format alike; surface it rather than returning garbage.
             throw new InvalidOperationException(
-                "Decryption failed: the key is incorrect or the value is not a valid ciphertext.", ex);
+                "Decryption failed: the key is incorrect, the value was tampered with, or it was " +
+                "encrypted by TasmanianDevil 0.2.1 or earlier (see AesCipher.DecryptLegacyCbc).", ex);
         }
         catch (Exception ex) when (ex is FormatException or ArgumentOutOfRangeException)
         {
-            // FormatException: not base64url. ArgumentOutOfRangeException: decoded too short to hold
-            // the 16-byte IV (truncated/corrupted ciphertext). Either way it is not a valid ciphertext.
+            // FormatException: not base64url. ArgumentOutOfRangeException: truncated payload.
             throw new InvalidOperationException(
                 "Decryption failed: the value is not a valid base64url ciphertext.", ex);
         }
