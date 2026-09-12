@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace TasmanianDevil.Analyzer;
@@ -8,9 +9,16 @@ namespace TasmanianDevil.Analyzer;
 /// </summary>
 public class PatternRecognizer : EntityRecognizer
 {
-    /// <summary>Default regex options: <c>DOTALL | MULTILINE | IGNORECASE</c>.</summary>
+    /// <summary>
+    /// Default regex options: <c>DOTALL | MULTILINE | IGNORECASE | CULTUREINVARIANT</c>.
+    /// <see cref="RegexOptions.CultureInvariant"/> is essential: without it
+    /// <see cref="RegexOptions.IgnoreCase"/> folds case using <see cref="CultureInfo.CurrentCulture"/>,
+    /// so the same text would yield different detections under e.g. a Turkish locale (where dotless
+    /// <c>&#x131;</c> is equivalent to <c>I</c>).
+    /// </summary>
     public const RegexOptions DefaultRegexOptions =
-        RegexOptions.Singleline | RegexOptions.Multiline | RegexOptions.IgnoreCase | RegexOptions.Compiled;
+        RegexOptions.Singleline | RegexOptions.Multiline | RegexOptions.IgnoreCase |
+        RegexOptions.CultureInvariant | RegexOptions.Compiled;
 
     /// <summary>Default per-pattern match timeout.</summary>
     public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(1);
@@ -109,64 +117,78 @@ public class PatternRecognizer : EntityRecognizer
         foreach (var pattern in Patterns)
         {
             var regex = pattern.GetCompiled(_regexOptions, _timeout);
-            MatchCollection matches;
+
+            // Regex.Matches returns a lazy MatchCollection: no matching happens until the
+            // collection is enumerated, so a RegexMatchTimeoutException surfaces from MoveNext
+            // rather than from Matches itself. The enumeration must therefore be inside the try.
             try
             {
-                matches = regex.Matches(text);
+                CollectMatches(regex, pattern, text, results);
             }
-            catch (RegexMatchTimeoutException)
+            catch (RegexMatchTimeoutException ex)
             {
-                continue;
-            }
-
-            foreach (Match match in matches)
-            {
-                if (match.Value.Length == 0)
-                {
-                    continue;
-                }
-
-                var start = match.Index;
-                var end = match.Index + match.Length;
-                var currentMatch = match.Value;
-                var score = pattern.Score;
-
-                var validationResult = ValidateResult(currentMatch);
-                var explanation = BuildRegexExplanation(pattern.Name, pattern.Regex, score, validationResult);
-
-                var result = new RecognizerResult(
-                    entityType: SupportedEntity,
-                    start: start,
-                    end: end,
-                    score: score,
-                    recognitionMetadata: new Dictionary<string, object>
-                    {
-                        [RecognizerResult.RecognizerNameKey] = Name,
-                        [RecognizerResult.RecognizerIdentifierKey] = Id,
-                    },
-                    analysisExplanation: explanation);
-
-                if (validationResult is not null)
-                {
-                    result.Score = validationResult.Value ? MaxScore : MinScore;
-                }
-
-                var invalidationResult = InvalidateResult(currentMatch);
-                if (invalidationResult is true)
-                {
-                    result.Score = MinScore;
-                }
-
-                if (result.Score > MinScore)
-                {
-                    results.Add(result);
-                }
-
-                explanation.Score = result.Score;
+                // a timed-out pattern contributes no results; surface it so callers can see the
+                // detection gap instead of silently under-redacting
+                OnRegexTimeout(pattern, ex);
             }
         }
 
         return RemoveDuplicates(results);
+    }
+
+    /// <summary>
+    /// Called when a pattern exceeds its match timeout and is skipped. The default implementation
+    /// does nothing; override to log or count these, since a skipped pattern means PII that pattern
+    /// would have found is not redacted.
+    /// </summary>
+    protected virtual void OnRegexTimeout(Pattern pattern, RegexMatchTimeoutException exception)
+    {
+    }
+
+    private void CollectMatches(Regex regex, Pattern pattern, string text, List<RecognizerResult> results)
+    {
+        foreach (Match match in regex.Matches(text))
+        {
+            if (match.Value.Length == 0)
+            {
+                continue;
+            }
+
+            var currentMatch = match.Value;
+            var score = pattern.Score;
+
+            var validationResult = ValidateResult(currentMatch);
+            var explanation = BuildRegexExplanation(pattern.Name, pattern.Regex, score, validationResult);
+
+            var result = new RecognizerResult(
+                entityType: SupportedEntity,
+                start: match.Index,
+                end: match.Index + match.Length,
+                score: score,
+                recognitionMetadata: new Dictionary<string, object>
+                {
+                    [RecognizerResult.RecognizerNameKey] = Name,
+                    [RecognizerResult.RecognizerIdentifierKey] = Id,
+                },
+                analysisExplanation: explanation);
+
+            if (validationResult is not null)
+            {
+                result.Score = validationResult.Value ? MaxScore : MinScore;
+            }
+
+            if (InvalidateResult(currentMatch) is true)
+            {
+                result.Score = MinScore;
+            }
+
+            if (result.Score > MinScore)
+            {
+                results.Add(result);
+            }
+
+            explanation.Score = result.Score;
+        }
     }
 
     private static Pattern DenyListToRegex(IReadOnlyList<string> denyList, double denyListScore)

@@ -9,8 +9,9 @@ namespace TasmanianDevil.Analyzer;
 /// </summary>
 public sealed class Pattern
 {
-    private Regex? _compiled;
-    private RegexOptions _compiledWith;
+    // one immutable tuple published atomically: a reader can never observe a Regex paired with
+    // the wrong options/timeout, which a two-field cache allows under concurrent access.
+    private volatile CompiledRegex? _compiled;
 
     /// <summary>Initializes a new instance of the <see cref="Pattern"/> class.</summary>
     public Pattern(string name, [StringSyntax(StringSyntaxAttribute.Regex)] string regex, double score)
@@ -30,15 +31,23 @@ public sealed class Pattern
     /// <summary>The base confidence score assigned to matches of this pattern.</summary>
     public double Score { get; }
 
-    /// <summary>Returns a compiled <see cref="System.Text.RegularExpressions.Regex"/> for the given options, caching it.</summary>
+    /// <summary>
+    /// Returns a compiled <see cref="System.Text.RegularExpressions.Regex"/> for the given options
+    /// and timeout, caching it. Safe to call concurrently; the timeout is part of the cache key, so
+    /// two recognizers sharing a <see cref="Pattern"/> with different timeouts each get their own.
+    /// </summary>
     public Regex GetCompiled(RegexOptions options, TimeSpan timeout)
     {
-        if (_compiled is null || _compiledWith != options)
+        var cached = _compiled;
+        if (cached is not null && cached.Options == options && cached.Timeout == timeout)
         {
-            _compiled = new Regex(Regex, options, timeout);
-            _compiledWith = options;
+            return cached.Regex;
         }
 
-        return _compiled;
+        var compiled = new CompiledRegex(new Regex(Regex, options, timeout), options, timeout);
+        _compiled = compiled;
+        return compiled.Regex;
     }
+
+    private sealed record CompiledRegex(Regex Regex, RegexOptions Options, TimeSpan Timeout);
 }

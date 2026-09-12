@@ -85,30 +85,46 @@ public class CountryRecognizerTests
         r.Analyze("15070649C104", All).Should().BeEmpty();
     }
 
-    [Fact]
-    public void ShouldValidateIdCard_WhenCheckDigitValid()
+    [Theory]
+    [InlineData("L01X00T44")]
+    [InlineData("C01X00T41")]
+    public void ShouldValidateIdDocument_WhenCheckDigitValid(string serial)
     {
-        var r = new DeIdCardRecognizer();
-        r.Analyze("L01X00T44", All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
-        r.Analyze("L01X00T45", All).Should().BeEmpty();
+        // Personalausweis and Reisepass serials share one format, so one recognizer covers both
+        var r = new DeIdDocumentRecognizer();
+        r.Analyze(serial, All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
+    }
+
+    [Theory]
+    [InlineData("L01X00T45")]
+    [InlineData("C01X00T42")]
+    public void ShouldDropIdDocument_WhenCheckDigitInvalid(string serial)
+    {
+        new DeIdDocumentRecognizer().Analyze(serial, All).Should().BeEmpty();
     }
 
     [Fact]
     public void ShouldKeepLegacyIdCard_WhenTFormat()
     {
         // legacy "T + 8 digits" predates the check digit and keeps its base score
-        var r = new DeIdCardRecognizer();
+        var r = new DeIdDocumentRecognizer();
         var results = r.Analyze("T22000124", All);
         results.Should().ContainSingle();
         results[0].Score.Should().BeLessThan(EntityRecognizer.MaxScore);
     }
 
     [Fact]
-    public void ShouldValidatePassport_WhenCheckDigitValid()
+    public void ShouldReportOneEntity_ForAGermanIdDocumentSerial()
     {
-        var r = new DePassportRecognizer();
-        r.Analyze("C01X00T41", All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
-        r.Analyze("C01X00T42", All).Should().BeEmpty();
+        // earlier versions reported the same span as both DE_ID_CARD and DE_PASSPORT at full
+        // confidence, and anonymization picked between them by registration order
+        using var engine = new PiiEngine(new PiiOptions { Countries = [PiiCountries.De] });
+
+        var results = engine.Analyze("Ausweisnummer L01X00T44 vorgelegt");
+
+        results.Should().ContainSingle().Which.EntityType.Should().Be(PiiEntities.DeIdDocument);
+        engine.Anonymize("Ausweisnummer L01X00T44 vorgelegt").Text
+            .Should().Be($"Ausweisnummer <{PiiEntities.DeIdDocument}> vorgelegt");
     }
 
     [Fact]
@@ -201,8 +217,38 @@ public class CountryRecognizerTests
     [InlineData("744729063")]
     public void ShouldValidateBsn_When11ProefValid(string bsn)
     {
-        var r = new NlBSNRecognizer();
-        r.Analyze(bsn, All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
+        // a passing 11-proef abstains rather than promoting to MaxScore: the check is too weak on its
+        // own, so the match keeps its low base score and needs context to clear the threshold
+        var r = new NlBsnRecognizer();
+        var result = r.Analyze(bsn, All).Should().ContainSingle().Subject;
+        result.Score.Should().Be(0.05);
+        result.Score.Should().BeLessThan(EntityRecognizer.MaxScore);
+    }
+
+    [Fact]
+    public void ShouldRequireContextForBsn_BecauseThe11ProefAloneIsWeak()
+    {
+        // a mod-11 check passes for roughly one in eleven nine-digit numbers, so an order reference
+        // must not be redacted as a BSN without a Dutch context word nearby
+        var engine = new PiiEngine(new PiiOptions { Countries = [PiiCountries.Nl] });
+
+        engine.Analyze("Order reference 111222333 shipped.")
+            .Should().NotContain(r => r.EntityType == PiiEntities.NlBsn);
+
+        engine.Analyze("Burgerservicenummer 111222333 is geregistreerd.")
+            .Should().Contain(r => r.EntityType == PiiEntities.NlBsn);
+    }
+
+    [Fact]
+    public void ShouldRequireContextForPostcode_BecauseTheShapeCollidesWithProse()
+    {
+        var engine = new PiiEngine(new PiiOptions { Countries = [PiiCountries.Nl] });
+
+        engine.Analyze("The treaty dates to 3000 BC and later.")
+            .Should().NotContain(r => r.EntityType == PiiEntities.NlPostcode);
+
+        engine.Analyze("Het adres is 1234 AB Amsterdam.")
+            .Should().Contain(r => r.EntityType == PiiEntities.NlPostcode);
     }
 
     [Theory]
@@ -213,7 +259,7 @@ public class CountryRecognizerTests
     [InlineData("123456789")]
     public void ShouldValidateBsn_When11ProefInvalid(string bsn)
     {
-        var r = new NlBSNRecognizer();
+        var r = new NlBsnRecognizer();
         r.Analyze(bsn, All).Should().BeEmpty();
     }
 
@@ -223,7 +269,7 @@ public class CountryRecognizerTests
     public void ShouldValidatePostcode_WhenStructureValid(string postcode)
     {
         var r = new NlPostcodeRecognizer();
-        r.Analyze(postcode, All).Should().ContainSingle().Which.Score.Should().Be(0.95);
+        r.Analyze(postcode, All).Should().ContainSingle().Which.Score.Should().Be(0.1);
     }
 
     [Theory]
@@ -246,7 +292,7 @@ public class CountryRecognizerTests
     public void ShouldValidatePassport_WhenStructureValid(string passport)
     {
         var r = new NlPassportRecognizer();
-        r.Analyze(passport, All).Should().ContainSingle().Which.Score.Should().Be(0.80);
+        r.Analyze(passport, All).Should().ContainSingle().Which.Score.Should().Be(0.2);
     }
 
     [Theory]

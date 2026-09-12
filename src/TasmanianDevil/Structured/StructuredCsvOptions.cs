@@ -6,7 +6,7 @@ namespace TasmanianDevil.Structured;
 /// Configures column-wise CSV/TSV redaction: which columns are processed, how many cells are sampled
 /// to infer whether a column carries PII, and the per-entity anonymization operators.
 /// </summary>
-public sealed class StructuredCsvOptions
+public sealed record StructuredCsvOptions
 {
     /// <summary>Number of cells sampled per column to infer whether the column carries PII. Defaults to 100.</summary>
     public int SampleSize { get; init; } = 100;

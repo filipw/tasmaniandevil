@@ -47,8 +47,10 @@ Console.WriteLine(result.AnonymizedText);
 
 ### Operators
 
-`replace` (default `<ENTITY_TYPE>`), `redact`, `mask`, `hash` (salted SHA-256/512),
-`encrypt`/`decrypt` (reversible AES-CBC), `keep`, and `custom` (your lambda):
+`replace` (default `<ENTITY_TYPE>`), `redact`, `mask`, `hash` (salted SHA-256/512 - the salt is
+generated once per operator instance, so identical values hash identically; pass an explicit `salt`
+to make digests reproducible across runs),
+`encrypt`/`decrypt` (reversible AES-GCM), `keep`, and `custom` (your lambda):
 
 ```csharp
 var options = new PiiOptions

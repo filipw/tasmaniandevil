@@ -8,6 +8,12 @@ namespace TasmanianDevil;
 /// </summary>
 public static class PiiCountries
 {
+    /// <summary>
+    /// United States (SSN, ITIN, ABA routing, bank account, driver license, passport, NPI, MBI, DEA).
+    /// Always enabled - listing it in <see cref="PiiOptions.Countries"/> is a harmless no-op.
+    /// </summary>
+    public const string Us = "us";
+
     /// <summary>United Kingdom (NINO, NHS, postcode, passport, driving licence, vehicle registration).</summary>
     public const string Uk = "uk";
 

@@ -14,6 +14,12 @@ internal static class IcaoCheckDigit
     /// </summary>
     public static bool Validate(string text)
     {
+        // the trailing character is compared as a digit; anything else is not a check digit
+        if (text.Length < 2 || !char.IsAsciiDigit(text[^1]))
+        {
+            return false;
+        }
+
         var total = 0;
         for (var i = 0; i < text.Length - 1; i++)
         {

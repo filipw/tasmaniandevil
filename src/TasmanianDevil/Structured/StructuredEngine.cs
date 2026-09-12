@@ -21,6 +21,10 @@ public sealed class StructuredEngine
     private readonly string _language;
     private readonly double _scoreThreshold;
     private readonly ConflictResolutionStrategy _conflictResolution;
+    private readonly IReadOnlyList<string>? _entities;
+    private readonly IReadOnlyList<string>? _allowList;
+    private readonly AllowListMatch _allowListMatch;
+    private readonly bool _mergeEntitiesWithSpaces;
 
     /// <summary>Initializes a new instance of the <see cref="StructuredEngine"/> class.</summary>
     /// <param name="analyzer">Detection engine. Defaults to the generic + always-on US recognizers for <paramref name="language"/>.</param>
@@ -28,16 +32,28 @@ public sealed class StructuredEngine
     /// <param name="language">Analysis language. Defaults to <c>en</c>.</param>
     /// <param name="scoreThreshold">Minimum detection confidence to act on. Defaults to 0.4.</param>
     /// <param name="conflictResolution">Overlap resolution strategy.</param>
+    /// <param name="entities">Entity types to detect. When null or empty, every supported entity is detected.</param>
+    /// <param name="allowList">Terms exempt from redaction.</param>
+    /// <param name="allowListMatch">How <paramref name="allowList"/> entries are interpreted.</param>
+    /// <param name="mergeEntitiesWithSpaces">When true (default), merge adjacent same-type spans separated only by spaces.</param>
     public StructuredEngine(
         AnalyzerEngine? analyzer = null,
         AnonymizerEngine? anonymizer = null,
         string language = "en",
         double scoreThreshold = 0.4,
-        ConflictResolutionStrategy conflictResolution = ConflictResolutionStrategy.MergeSimilarOrContained)
+        ConflictResolutionStrategy conflictResolution = ConflictResolutionStrategy.MergeSimilarOrContained,
+        IReadOnlyList<string>? entities = null,
+        IReadOnlyList<string>? allowList = null,
+        AllowListMatch allowListMatch = AllowListMatch.Exact,
+        bool mergeEntitiesWithSpaces = true)
     {
         _language = language;
         _scoreThreshold = scoreThreshold;
         _conflictResolution = conflictResolution;
+        _entities = entities;
+        _allowList = allowList;
+        _allowListMatch = allowListMatch;
+        _mergeEntitiesWithSpaces = mergeEntitiesWithSpaces;
         _analyzer = analyzer ?? new AnalyzerEngine(
             PiiRecognizers.CreateDefaultRegistry(language),
             new LemmaContextAwareEnhancer());
@@ -90,7 +106,7 @@ public sealed class StructuredEngine
                 var newObj = new JsonObject();
                 foreach (var (key, value) in obj)
                 {
-                    var childPath = path.Length == 0 ? key : $"{path}.{key}";
+                    var childPath = JsonRedactionScope.AppendSegment(path, key);
                     newObj[key] = Redact(value, childPath, scope, operators);
                 }
 
@@ -196,7 +212,7 @@ public sealed class StructuredEngine
                 continue;
 
             nonEmpty++;
-            var results = _analyzer.Analyze(row[col], _language, scoreThreshold: _scoreThreshold);
+            var results = Analyze(row[col]);
             if (results.Count == 0)
                 continue;
 
@@ -224,10 +240,15 @@ public sealed class StructuredEngine
         if (string.IsNullOrWhiteSpace(text))
             return text;
 
-        var results = _analyzer.Analyze(text, _language, scoreThreshold: _scoreThreshold);
+        var results = Analyze(text);
         if (results.Count == 0)
             return text;
 
-        return _anonymizer.Anonymize(text, results, operators, _conflictResolution).Text;
+        return _anonymizer.Anonymize(text, results, operators, _conflictResolution, _mergeEntitiesWithSpaces).Text;
     }
+
+    // one analysis entry point so structured redaction can never drift from the configured
+    // entity filter and allow-list the way free-text redaction honours them
+    private IReadOnlyList<RecognizerResult> Analyze(string text) =>
+        _analyzer.Analyze(text, _language, _entities, _scoreThreshold, _allowList, _allowListMatch);
 }

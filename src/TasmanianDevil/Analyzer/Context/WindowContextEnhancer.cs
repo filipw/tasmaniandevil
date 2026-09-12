@@ -35,7 +35,18 @@ public sealed partial class WindowContextEnhancer : IContextAwareEnhancer
         IReadOnlyList<EntityRecognizer> recognizers,
         IReadOnlyList<string>? externalContext = null)
     {
-        var recognizerById = recognizers.ToDictionary(r => r.Id);
+        // the same recognizer instance may appear twice in a registry; tolerate the duplicate Id
+        var recognizerById = new Dictionary<string, EntityRecognizer>(StringComparer.Ordinal);
+        foreach (var recognizer in recognizers)
+        {
+            recognizerById[recognizer.Id] = recognizer;
+        }
+
+        if (rawResults.Count == 0 || !recognizers.Any(r => r.Context is { Count: > 0 }))
+        {
+            return rawResults;
+        }
+
         var external = externalContext?.Select(w => w.ToLowerInvariant()).ToList() ?? [];
 
         var tokens = Tokenize(text);
@@ -87,7 +98,7 @@ public sealed partial class WindowContextEnhancer : IContextAwareEnhancer
         var index = -1;
         for (var i = 0; i < tokens.Count; i++)
         {
-            if (tokens[i].Start == matchStart || matchStart < tokens[i].End)
+            if (matchStart < tokens[i].End)
             {
                 index = i;
                 break;
@@ -101,15 +112,23 @@ public sealed partial class WindowContextEnhancer : IContextAwareEnhancer
 
         var words = new List<string>();
 
-        // include the matched token itself plus n preceding tokens
-        for (var i = index; i >= 0 && i > index - (_contextPrefixCount + 1); i--)
+        var from = Math.Max(0, index - _contextPrefixCount);
+        var to = Math.Min(tokens.Count - 1, index + _contextSuffixCount);
+
+        for (var i = from; i <= to; i++)
         {
             words.Add(tokens[i].Word.ToLowerInvariant());
         }
 
-        for (var i = index + 1; i < tokens.Count && i <= index + _contextSuffixCount; i++)
+        // multi-word context entries cannot equal a single token, so offer adjacent n-grams too
+        for (var i = from; i <= to; i++)
         {
-            words.Add(tokens[i].Word.ToLowerInvariant());
+            var phrase = tokens[i].Word.ToLowerInvariant();
+            for (var n = 1; n < 4 && i + n <= to; n++)
+            {
+                phrase = $"{phrase} {tokens[i + n].Word.ToLowerInvariant()}";
+                words.Add(phrase);
+            }
         }
 
         return words;

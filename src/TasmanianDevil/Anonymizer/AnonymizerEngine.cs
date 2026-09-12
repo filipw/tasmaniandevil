@@ -75,8 +75,12 @@ public sealed partial class AnonymizerEngine
             }
         }
 
-        // step 2: drop results that conflict with (are contained in / dominated by) others
+        // step 2: drop results that conflict with (are contained in / dominated by) others.
+        // ties on both span and score are broken by entity type so the surviving type is stable
+        // rather than dependent on recognizer registration order.
         var unique = new List<RecognizerResult>();
+        tmp = [.. tmp.OrderBy(r => r.Start).ThenByDescending(r => r.End - r.Start)
+                     .ThenByDescending(r => r.Score).ThenBy(r => r.EntityType, StringComparer.Ordinal)];
         otherElements = new List<RecognizerResult>(tmp);
         foreach (var result in tmp)
         {

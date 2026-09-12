@@ -6,7 +6,7 @@ using TasmanianDevil.Anonymizer.Operators;
 namespace TasmanianDevil;
 
 /// <summary>
-/// Configures <see cref="PiiRule"/>: which entities to detect, how to anonymize them, the
+/// Configures <see cref="PiiEngine"/>: which entities to detect, how to anonymize them, the
 /// detection threshold and allow-list behavior.
 /// </summary>
 public sealed class PiiOptions
@@ -62,8 +62,14 @@ public sealed class PiiOptions
     /// <summary>Conflict resolution strategy for overlapping entities.</summary>
     public ConflictResolutionStrategy ConflictResolution { get; init; } = ConflictResolutionStrategy.MergeSimilarOrContained;
 
-    /// <summary>When true (default), the rule also redacts model output, not just input.</summary>
-    public bool RedactOutput { get; init; } = true;
+    /// <summary>
+    /// When <c>true</c> (default), adjacent entities of the same type separated only by spaces are
+    /// merged into a single span before anonymization. That is what keeps a multi-token name
+    /// ("John Smith") one entity, but it also collapses genuinely separate values - two space-separated
+    /// email addresses become one <c>&lt;EMAIL_ADDRESS&gt;</c>. Set to <c>false</c> to anonymize each
+    /// detected span on its own.
+    /// </summary>
+    public bool MergeEntitiesWithSpaces { get; init; } = true;
 
     /// <summary>Builds the effective operator map from <see cref="Operators"/> / <see cref="Replacement"/>.</summary>
     public IReadOnlyDictionary<string, OperatorConfig>? BuildOperators()

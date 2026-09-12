@@ -16,7 +16,7 @@ public sealed class CreditCardRecognizer : PatternRecognizer
     ];
 
     private static readonly IReadOnlyList<string> DefaultContext =
-        ["credit", "card", "visa", "mastercard", "cc ", "amex", "discover", "jcb", "diners", "maestro", "instapayment"];
+        ["credit", "card", "visa", "mastercard", "cc", "amex", "discover", "jcb", "diners", "maestro", "instapayment"];
 
     private static readonly IReadOnlyList<(string, string)> ReplacementPairs = [("-", ""), (" ", "")];
 

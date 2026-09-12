@@ -27,6 +27,8 @@ public sealed partial class DeVatIdRecognizer : PatternRecognizer
     private readonly bool _strictChecksum;
 
     /// <summary>Initializes a new instance of the <see cref="DeVatIdRecognizer"/> class.</summary>
+    /// <param name="supportedEntity">The entity type to report. Defaults to <c>DE_VAT_ID</c>.</param>
+    /// <param name="supportedLanguage">The analysis language this recognizer is registered for.</param>
     /// <param name="strictChecksum">When true, a checksum mismatch drops the match instead of abstaining.</param>
     public DeVatIdRecognizer(string supportedEntity = "DE_VAT_ID", string supportedLanguage = "en", bool strictChecksum = false)
         : base(supportedEntity, patterns: DefaultPatterns, context: DefaultContext, supportedLanguage: supportedLanguage, countryCode: "de")

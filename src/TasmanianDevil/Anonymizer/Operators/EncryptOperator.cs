@@ -2,7 +2,14 @@ using System.Text;
 
 namespace TasmanianDevil.Anonymizer.Operators;
 
-/// <summary>Encrypts a PII span with AES so it can later be restored via <see cref="DecryptOperator"/>.</summary>
+/// <summary>
+/// Encrypts a PII span with AES so it can later be restored via <see cref="DecryptOperator"/>.
+/// <para>
+/// The <c>key</c> parameter accepts a <see cref="byte"/> array or a <see cref="string"/> (taken as
+/// raw UTF-8 bytes, with no key derivation). Encryption is authenticated (AES-GCM); see
+/// <see cref="AesCipher"/> for the wire format and the key-material caveat.
+/// </para>
+/// </summary>
 public sealed class EncryptOperator : IOperator
 {
     /// <inheritdoc />

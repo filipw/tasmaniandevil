@@ -22,7 +22,7 @@ public sealed class UsSsnRecognizer : PatternRecognizer
 
     /// <summary>Initializes a new instance of the <see cref="UsSsnRecognizer"/> class.</summary>
     public UsSsnRecognizer(string supportedEntity = "US_SSN", string supportedLanguage = "en")
-        : base(supportedEntity, patterns: DefaultPatterns, context: DefaultContext, supportedLanguage: supportedLanguage)
+        : base(supportedEntity, patterns: DefaultPatterns, context: DefaultContext, supportedLanguage: supportedLanguage, countryCode: "us")
     {
     }
 

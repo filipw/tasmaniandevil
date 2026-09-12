@@ -5,11 +5,25 @@ namespace TasmanianDevil.Anonymizer.Operators;
 
 /// <summary>
 /// Replaces a PII span with a salted SHA-256/512 hash.
+/// <para>
+/// When no <c>salt</c> parameter is supplied, a single random salt is generated once per
+/// <see cref="HashOperator"/> instance. That keeps hashing <em>referentially consistent</em> within
+/// one engine - the same input always yields the same digest, which is the property that makes
+/// <c>hash</c> useful for linking records - while remaining unguessable. It is deliberately not
+/// stable across instances or processes: pass an explicit <c>salt</c> (at least 16 bytes) whenever
+/// digests must match across runs or machines.
+/// </para>
 /// </summary>
 public sealed class HashOperator : IOperator
 {
     private const string Sha256Type = "sha256";
     private const string Sha512Type = "sha512";
+
+    private const int MinSaltBytes = 16;
+
+    // generated once per instance, not per span: a per-span salt would make every occurrence of the
+    // same value hash differently, which silently destroys the point of hashing over replace.
+    private readonly byte[] _instanceSalt = RandomNumberGenerator.GetBytes(32);
 
     /// <inheritdoc />
     public string Name => "hash";
@@ -43,10 +57,10 @@ public sealed class HashOperator : IOperator
 
         if (parameters.TryGetValue(OperatorParams.Salt, out var saltValue))
         {
-            var salt = NormalizeSalt(saltValue);
-            if (salt.Length is 0 or < 16)
+            if (NormalizeSalt(saltValue).Length < MinSaltBytes)
             {
-                throw new ArgumentException("Salt must be at least 16 bytes (128 bits), or omitted to auto-generate.");
+                throw new ArgumentException(
+                    $"Salt must be at least {MinSaltBytes} bytes (128 bits), or omitted to auto-generate one per operator instance.");
             }
         }
     }
@@ -54,15 +68,10 @@ public sealed class HashOperator : IOperator
     private static string GetHashTypeOrDefault(IReadOnlyDictionary<string, object> parameters) =>
         OperatorParams.Get<string>(parameters, OperatorParams.HashType, Sha256Type)!;
 
-    private static byte[] GetSalt(IReadOnlyDictionary<string, object> parameters)
-    {
-        if (parameters.TryGetValue(OperatorParams.Salt, out var saltValue))
-        {
-            return NormalizeSalt(saltValue);
-        }
-
-        return RandomNumberGenerator.GetBytes(32);
-    }
+    private byte[] GetSalt(IReadOnlyDictionary<string, object> parameters) =>
+        parameters.TryGetValue(OperatorParams.Salt, out var saltValue)
+            ? NormalizeSalt(saltValue)
+            : _instanceSalt;
 
     private static byte[] NormalizeSalt(object saltValue) => saltValue switch
     {

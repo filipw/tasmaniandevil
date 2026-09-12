@@ -10,7 +10,7 @@ namespace TasmanianDevil.Azure;
 /// Fails open by default (see <see cref="AzurePiiOptions.FailOpen"/>): a remote failure yields no
 /// results rather than throwing, so local recognizers still redact what they can.
 /// </summary>
-public sealed class AzurePiiRecognizer : EntityRecognizer
+public sealed class AzurePiiRecognizer : EntityRecognizer, IDisposable
 {
     private readonly AzurePiiClient _client;
     private readonly AzurePiiOptions _options;
@@ -37,6 +37,14 @@ public sealed class AzurePiiRecognizer : EntityRecognizer
 
     /// <inheritdoc />
     public override bool RequiresAsync => true;
+
+    /// <summary>
+    /// Disposes the underlying client when it implements <see cref="IDisposable"/>. The single-argument
+    /// client constructors create and own an <see cref="HttpClient"/>, so without this its handler and
+    /// connection pool would leak; a client built from a caller-supplied
+    /// <see cref="HttpClient"/> leaves that instance alone.
+    /// </summary>
+    public void Dispose() => (_client as IDisposable)?.Dispose();
 
     /// <inheritdoc />
     public override IReadOnlyList<RecognizerResult> Analyze(string text, IReadOnlyList<string> entities) => [];
