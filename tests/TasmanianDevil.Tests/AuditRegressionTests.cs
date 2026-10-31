@@ -7,6 +7,7 @@ using TasmanianDevil.Anonymizer;
 using TasmanianDevil.Anonymizer.Operators;
 using TasmanianDevil.Batch;
 using TasmanianDevil.Recognizers.Generic;
+using TasmanianDevil.Recognizers.Sweden;
 using TasmanianDevil.Recognizers.TheNetherlands;
 using TasmanianDevil.Recognizers.Uk;
 using TasmanianDevil.Structured;
@@ -293,7 +294,7 @@ public class AuditRegressionTests
         // every multi-word entry must be reachable through the n-gram path; a trailing/leading space
         // never can be, so guard against reintroducing one
         var contextWords = PiiRecognizers
-            .CreateRegistry("en", [PiiCountries.Uk, PiiCountries.De, PiiCountries.In, PiiCountries.It, PiiCountries.Es, PiiCountries.Nl])
+            .CreateRegistry("en", [PiiCountries.Uk, PiiCountries.De, PiiCountries.In, PiiCountries.It, PiiCountries.Es, PiiCountries.Nl, PiiCountries.Se])
             .Recognizers
             .SelectMany(r => r.Context ?? [])
             .ToList();
@@ -403,6 +404,34 @@ public class AuditRegressionTests
         var falsePositives = Enumerable.Range(0, 500)
             .Select(_ => random.Next(100_000_000, 1_000_000_000).ToString(CultureInfo.InvariantCulture))
             .Count(n => engine.Analyze($"Order reference {n} shipped.").Any(r => r.EntityType == PiiEntities.NlBsn));
+
+        falsePositives.Should().Be(0);
+    }
+
+    // the Swedish validators are public too and must not throw on short or odd input
+    [Theory]
+    [InlineData("")]
+    [InlineData("1")]
+    [InlineData("-1234")]
+    [InlineData("12345-6789")]
+    [InlineData("123456789012345")]
+    public void SeValidate_ShouldReturnFalse_RatherThanThrow_OnShortInput(string value)
+    {
+        new SePersonnummerRecognizer().ValidateResult(value).Should().Be(false);
+        new SeOrganisationsnummerRecognizer().ValidateResult(value).Should().Be(false);
+    }
+
+    // the Luhn check passes for one in ten numbers, so bare ten-digit runs must not be redacted without context
+    [Fact]
+    public void SePack_ShouldNotRedactArbitraryTenDigitNumbers()
+    {
+        using var engine = new PiiEngine(new PiiOptions { Countries = [PiiCountries.Se] });
+        var random = new Random(42);
+
+        var falsePositives = Enumerable.Range(0, 500)
+            .Select(_ => random.NextInt64(1_000_000_000, 10_000_000_000).ToString(CultureInfo.InvariantCulture))
+            .Count(n => engine.Analyze($"Order reference {n} shipped.")
+                .Any(r => r.EntityType is PiiEntities.SePersonnummer or PiiEntities.SeOrganisationsnummer));
 
         falsePositives.Should().Be(0);
     }

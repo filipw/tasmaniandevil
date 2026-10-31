@@ -4,6 +4,7 @@ using TasmanianDevil.Recognizers.Germany;
 using TasmanianDevil.Recognizers.India;
 using TasmanianDevil.Recognizers.Italy;
 using TasmanianDevil.Recognizers.Spain;
+using TasmanianDevil.Recognizers.Sweden;
 using TasmanianDevil.Recognizers.TheNetherlands;
 using TasmanianDevil.Recognizers.Uk;
 using TasmanianDevil.Recognizers.Us;
@@ -305,5 +306,76 @@ public class CountryRecognizerTests
     {
         var r = new NlPassportRecognizer();
         r.Analyze(passport, All).Should().BeEmpty();
+    }
+
+    // --- Sweden ---
+    // Personnummer are Skatteverket's published test numbers (open data, never issued to anyone); the samordningsnummer
+    // is one of its test samordningsnummer; the organisationsnummer is synthetic.
+
+    [Theory]
+    [InlineData("19780401-2388")]
+    [InlineData("780401-2388")]
+    [InlineData("900101+9802")]
+    [InlineData("20260161-2381")]
+    public void ShouldValidatePersonnummer_WhenWrittenWithSeparator(string pnr)
+    {
+        var r = new SePersonnummerRecognizer();
+        r.Analyze($"Personnummer {pnr}.", All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
+    }
+
+    [Theory]
+    [InlineData("19780401-2389")]
+    [InlineData("781301-2382")]
+    [InlineData("780400-2389")]
+    [InlineData("559900-1236")]
+    public void ShouldRejectPersonnummer_WhenCheckDigitOrDateInvalid(string pnr)
+    {
+        var r = new SePersonnummerRecognizer();
+        r.Analyze($"Personnummer {pnr}.", All).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ShouldRequireContextForBarePersonnummer_BecauseLuhnAloneIsWeak()
+    {
+        var engine = new PiiEngine(new PiiOptions { Countries = [PiiCountries.Se] });
+
+        engine.Analyze("Order reference 7804012388 shipped.")
+            .Should().NotContain(r => r.EntityType == PiiEntities.SePersonnummer);
+
+        engine.Analyze("Personnummer 7804012388 enligt ansökan.")
+            .Should().Contain(r => r.EntityType == PiiEntities.SePersonnummer);
+
+        engine.Analyze("Sökande, 19780401-2388, bor i Uppsala.")
+            .Should().Contain(r => r.EntityType == PiiEntities.SePersonnummer);
+    }
+
+    [Theory]
+    [InlineData("559900-1236")]
+    [InlineData("16559900-1236")]
+    public void ShouldValidateOrganisationsnummer_WhenWrittenWithHyphen(string orgnr)
+    {
+        var r = new SeOrganisationsnummerRecognizer();
+        r.Analyze($"Organisationsnummer {orgnr}.", All).Should().ContainSingle().Which.Score.Should().Be(EntityRecognizer.MaxScore);
+    }
+
+    [Theory]
+    [InlineData("559900-1237")]
+    [InlineData("780401-2388")]
+    [InlineData("19559900-1236")]
+    public void ShouldRejectOrganisationsnummer_WhenThirdDigitOrCheckDigitInvalid(string orgnr)
+    {
+        var r = new SeOrganisationsnummerRecognizer();
+        r.Analyze($"Organisationsnummer {orgnr}.", All).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ShouldTellPersonnummerAndOrganisationsnummerApart()
+    {
+        var engine = new PiiEngine(new PiiOptions { Countries = [PiiCountries.Se] });
+
+        var results = engine.Analyze("Sökande 19780401-2388 är anställd hos bolaget med organisationsnummer 559900-1236.");
+
+        results.Should().ContainSingle(r => r.EntityType == PiiEntities.SePersonnummer);
+        results.Should().ContainSingle(r => r.EntityType == PiiEntities.SeOrganisationsnummer);
     }
 }

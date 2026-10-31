@@ -4,6 +4,7 @@ using TasmanianDevil.Recognizers.Germany;
 using TasmanianDevil.Recognizers.India;
 using TasmanianDevil.Recognizers.Italy;
 using TasmanianDevil.Recognizers.Spain;
+using TasmanianDevil.Recognizers.Sweden;
 using TasmanianDevil.Recognizers.TheNetherlands;
 using TasmanianDevil.Recognizers.Uk;
 using TasmanianDevil.Recognizers.Us;
@@ -143,6 +144,11 @@ public static class PiiRecognizers
                 new NlPostcodeRecognizer(supportedLanguage: language),
                 new NlBsnRecognizer(supportedLanguage: language),
                 new NlPassportRecognizer(supportedLanguage: language),
+            ],
+            PiiCountries.Se =>
+            [
+                new SePersonnummerRecognizer(supportedLanguage: language),
+                new SeOrganisationsnummerRecognizer(supportedLanguage: language),
             ],
             _ => [],
         };

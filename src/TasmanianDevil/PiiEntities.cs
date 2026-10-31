@@ -178,6 +178,14 @@ public static class PiiEntities
     /// <summary>Dutch passport / identity card number.</summary>
     public const string NlPassport = "NL_PASSPORT";
 
+    // Sweden pack (opt-in via PiiCountries.Se)
+
+    /// <summary>Swedish personal identity number (personnummer) or coordination number (samordningsnummer), Luhn and date validated.</summary>
+    public const string SePersonnummer = "SE_PERSONNUMMER";
+
+    /// <summary>Swedish organisation number (organisationsnummer), Luhn validated.</summary>
+    public const string SeOrganisationsnummer = "SE_ORGANISATIONSNUMMER";
+
     // named-entity recognition (optional ONNX add-on)
 
     /// <summary>A person's name. Detected only by the optional GLiNER NER add-on.</summary>
