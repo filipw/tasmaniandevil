@@ -31,4 +31,7 @@ public static class PiiCountries
 
     /// <summary>The Netherlands (BSN, postcode, passport).</summary>
     public const string Nl = "nl";
+
+    /// <summary>Sweden (personnummer and samordningsnummer, organisationsnummer).</summary>
+    public const string Se = "se";
 }
